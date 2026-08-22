@@ -9,14 +9,15 @@ import { renderAuthView } from './components/AuthView.js';
 import { renderDashboard } from './components/Dashboard.js';
 import { renderProfile } from './components/Profile.js';
 import { renderPublicShareView } from './components/PublicShareView.js';
+import { renderCitySearch } from './components/CitySearch.js';
 
 export function createApp() {
   const root = document.getElementById('app');
 
   let currentUser = getUser();
-  let activeTab = 'dashboard';
   let shareToken = checkShareRoute();
-  let isAuthModalOpen = !isAuthenticated() && !shareToken;
+  let activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'explore');
+  let isAuthModalOpen = false;
   let authMode = 'login';
   let notification = null;
 
@@ -58,11 +59,12 @@ export function createApp() {
   }
 
   function handleTabChange(tab) {
-    if (!isAuthenticated()) {
+    if (tab !== 'explore' && !isAuthenticated()) {
       isAuthModalOpen = true;
       render();
       return;
     }
+    shareToken = null;
     activeTab = tab;
     render();
   }
@@ -70,9 +72,9 @@ export function createApp() {
   function handleLogout() {
     clearSession();
     currentUser = null;
-    isAuthModalOpen = true;
+    isAuthModalOpen = false;
     authMode = 'login';
-    activeTab = 'dashboard';
+    activeTab = 'explore';
     render();
   }
 
@@ -129,10 +131,12 @@ export function createApp() {
         onBack: () => {
           window.history.pushState({}, '', '/');
           shareToken = null;
-          isAuthModalOpen = !isAuthenticated();
+          activeTab = 'explore';
           render();
         }
       }));
+    } else if (activeTab === 'explore') {
+      mainContent.appendChild(renderCitySearch());
     } else if (isAuthenticated() && currentUser) {
       if (activeTab === 'dashboard') {
         mainContent.appendChild(renderDashboard({
@@ -161,12 +165,17 @@ export function createApp() {
           <p class="empty-state-desc">
             Collaborative multi-city itinerary planner with smart routing, budget estimation, and frictionless trip sharing.
           </p>
-          <div style="display: flex; justify-content: center; gap: 1rem;">
-            <button class="btn btn-primary btn-lg" id="landing-btn-login">Sign In</button>
-            <button class="btn btn-secondary btn-lg" id="landing-btn-register">Create Free Account</button>
+          <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+            <button class="btn btn-primary btn-lg" id="landing-btn-explore">Explore Cities</button>
+            <button class="btn btn-secondary btn-lg" id="landing-btn-login">Sign In</button>
+            <button class="btn btn-secondary btn-lg" id="landing-btn-register">Create Account</button>
           </div>
         </div>
       `;
+
+      landing.querySelector('#landing-btn-explore')?.addEventListener('click', () => {
+        handleTabChange('explore');
+      });
 
       landing.querySelector('#landing-btn-login')?.addEventListener('click', () => {
         isAuthModalOpen = true;
