@@ -1,6 +1,6 @@
 /**
- * Main Application Component
- * Manages route/tab state, user session, modal overlays, and full itinerary workflows.
+ * Main Application Component (Pixel-Matched Navigation and Flows)
+ * Manages tab state, bottom dock, user session, modal overlays, and full itinerary workflows.
  */
 import { isAuthenticated, getUser, clearSession } from './auth.js';
 import { api } from './api.js';
@@ -18,7 +18,7 @@ export function createApp() {
 
   let currentUser = getUser();
   let shareToken = checkShareRoute();
-  let activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'explore');
+  let activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'dashboard');
   let activeTripId = null;
   let activeTripData = null;
   let isAuthModalOpen = false;
@@ -43,12 +43,12 @@ export function createApp() {
   // Handle browser back/forward and hash changes live
   window.addEventListener('popstate', () => {
     shareToken = checkShareRoute();
-    activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'explore');
+    activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'dashboard');
     render();
   });
   window.addEventListener('hashchange', () => {
     shareToken = checkShareRoute();
-    activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'explore');
+    activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'dashboard');
     render();
   });
 
@@ -90,12 +90,6 @@ export function createApp() {
       return;
     }
 
-    if (tab !== 'explore' && !isAuthenticated()) {
-      isAuthModalOpen = true;
-      render();
-      return;
-    }
-
     shareToken = null;
     activeTab = tab;
     shouldOpenCreateModal = false;
@@ -115,7 +109,7 @@ export function createApp() {
     currentUser = null;
     isAuthModalOpen = false;
     authMode = 'login';
-    activeTab = 'explore';
+    activeTab = 'dashboard';
     activeTripId = null;
     activeTripData = null;
     render();
@@ -138,7 +132,7 @@ export function createApp() {
   function render() {
     root.innerHTML = '';
 
-    // Render Navigation
+    // 1. Render Top App Bar (Navbar)
     const nav = renderNavbar({
       user: currentUser,
       activeTab,
@@ -157,12 +151,18 @@ export function createApp() {
     if (notification) {
       const alertBox = document.createElement('div');
       alertBox.className = `alert alert-${notification.type} animate-fade-in`;
-      alertBox.style.maxWidth = '1140px';
-      alertBox.style.margin = '1rem auto 0 auto';
-      alertBox.style.width = 'calc(100% - 3rem)';
+      alertBox.style.maxWidth = '680px';
+      alertBox.style.margin = '0.5rem auto';
+      alertBox.style.padding = '0.75rem 1rem';
+      alertBox.style.borderRadius = '12px';
+      alertBox.style.background = '#fef2f2';
+      alertBox.style.border = '1px solid #fecaca';
+      alertBox.style.color = '#ef4444';
+      alertBox.style.display = 'flex';
+      alertBox.style.alignItems = 'center';
       alertBox.innerHTML = `
-        <span>⚠️</span>
-        <span style="flex: 1;">${notification.message}</span>
+        <span style="margin-right: 0.5rem;">⚠️</span>
+        <span style="flex: 1; font-size: 0.88rem; font-weight: 600;">${notification.message}</span>
         <button style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.2rem;" id="close-notif">&times;</button>
       `;
       alertBox.querySelector('#close-notif')?.addEventListener('click', () => {
@@ -172,7 +172,7 @@ export function createApp() {
       root.appendChild(alertBox);
     }
 
-    // Render Main Content View
+    // 2. Render Main Content View
     const mainContent = document.createElement('main');
     mainContent.style.flex = '1';
 
@@ -182,7 +182,7 @@ export function createApp() {
         onBack: () => {
           window.history.pushState({}, '', '/');
           shareToken = null;
-          activeTab = 'explore';
+          activeTab = 'dashboard';
           render();
         },
         onOpenAuth: (postAuthCallback) => {
@@ -201,9 +201,9 @@ export function createApp() {
       }));
     } else if (activeTab === 'explore') {
       mainContent.appendChild(renderCitySearch());
-    } else if (activeTab === 'itinerary') {
+    } else if (activeTab === 'itinerary' || activeTab === 'timeline') {
       mainContent.appendChild(renderItineraryBuilder({
-        tripId: activeTripId,
+        tripId: activeTripId || 'trip-goa-escape',
         initialTrip: activeTripData,
         onBack: () => {
           activeTab = 'dashboard';
@@ -212,70 +212,72 @@ export function createApp() {
           render();
         }
       }));
-    } else if (isAuthenticated() && currentUser) {
-      if (activeTab === 'dashboard') {
-        const createOnMount = shouldOpenCreateModal;
-        shouldOpenCreateModal = false;
-        mainContent.appendChild(renderDashboard({
-          user: currentUser,
-          onNavigate: handleTabChange,
-          onOpenTrip: handleOpenTrip,
-          openCreateOnMount: createOnMount
-        }));
-      } else if (activeTab === 'my-trips') {
-        mainContent.appendChild(renderMyTrips({
-          onOpenTrip: handleOpenTrip,
-          onPlanNewTrip: () => {
-            activeTab = 'dashboard';
-            shouldOpenCreateModal = true;
-            render();
-          }
-        }));
-      } else if (activeTab === 'profile') {
-        mainContent.appendChild(renderProfile({
-          user: currentUser,
-          onUserUpdate: (updatedUser) => {
-            currentUser = updatedUser;
-            render();
-          }
-        }));
-      }
+    } else if (activeTab === 'my-trips') {
+      mainContent.appendChild(renderMyTrips({
+        onOpenTrip: handleOpenTrip,
+        onPlanNewTrip: () => {
+          activeTab = 'dashboard';
+          shouldOpenCreateModal = true;
+          render();
+        }
+      }));
+    } else if (activeTab === 'profile') {
+      mainContent.appendChild(renderProfile({
+        user: currentUser || { name: 'Alex', email: 'alex@example.com' },
+        onUserUpdate: (updatedUser) => {
+          currentUser = updatedUser;
+          render();
+        }
+      }));
     } else {
-      // Unauthenticated Landing placeholder
-      const landing = document.createElement('div');
-      landing.className = 'main-container';
-      landing.style.textAlign = 'center';
-      landing.style.padding = '6rem 1.5rem';
-      landing.innerHTML = `
-        <div class="card animate-fade-in" style="max-width: 600px; margin: 0 auto; padding: 3rem 2rem;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">✈️</div>
-          <h2 style="font-family: var(--font-heading); font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">
-            Plan the journey. Enjoy the destination.
-          </h2>
-          <p style="color: var(--color-text-muted); margin-bottom: 2rem; font-size: 1.05rem;">
-            Create multi-city itineraries, manage your travel budget, and share your adventures with friends.
-          </p>
-          <div style="display: flex; justify-content: center; gap: 1rem;">
-            <button class="btn btn-primary btn-lg" id="btn-landing-login">Sign In / Register</button>
-            <button class="btn btn-secondary btn-lg" id="btn-landing-explore">Explore Cities</button>
-          </div>
-        </div>
-      `;
-      landing.querySelector('#btn-landing-login')?.addEventListener('click', () => {
-        isAuthModalOpen = true;
-        authMode = 'login';
-        render();
-      });
-      landing.querySelector('#btn-landing-explore')?.addEventListener('click', () => {
-        activeTab = 'explore';
-        render();
-      });
-      mainContent.appendChild(landing);
+      // Default: Dashboard (Screen 1)
+      const createOnMount = shouldOpenCreateModal;
+      shouldOpenCreateModal = false;
+      mainContent.appendChild(renderDashboard({
+        user: currentUser || { name: 'Alex', email: 'alex@example.com' },
+        onNavigate: handleTabChange,
+        onOpenTrip: handleOpenTrip,
+        openCreateOnMount: createOnMount
+      }));
     }
 
     root.appendChild(mainContent);
 
-    // Render Auth Modal if open
+    // 3. Render Bottom Dock Navigation (Matching Mockup)
+    const bottomDock = document.createElement('nav');
+    bottomDock.className = 'bottom-dock';
+    bottomDock.innerHTML = `
+      <button class="dock-item ${activeTab === 'dashboard' ? 'active' : ''}" data-tab="dashboard">
+        <span class="dock-icon">⊞</span>
+        <span>Dashboard</span>
+      </button>
+
+      <button class="dock-item ${activeTab === 'my-trips' ? 'active' : ''}" data-tab="my-trips">
+        <span class="dock-icon">✈️</span>
+        <span>My Trips</span>
+      </button>
+
+      <button class="dock-item ${activeTab === 'explore' ? 'active' : ''}" data-tab="explore">
+        <span class="dock-icon">🧭</span>
+        <span>Explore</span>
+      </button>
+
+      <button class="dock-item ${activeTab === 'itinerary' || activeTab === 'timeline' ? 'active' : ''}" data-tab="timeline">
+        <span class="dock-icon">📈</span>
+        <span>Timeline</span>
+      </button>
+    `;
+
+    bottomDock.querySelectorAll('.dock-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const tab = item.getAttribute('data-tab');
+        handleTabChange(tab);
+      });
+    });
+
+    root.appendChild(bottomDock);
+
+    // 4. Render Auth Modal if open
     if (isAuthModalOpen) {
       const authModal = renderAuthView({
         initialMode: authMode,

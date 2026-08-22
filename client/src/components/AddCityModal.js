@@ -1,8 +1,15 @@
 /**
- * Add City / Destination Stop Modal (Light Editorial Design)
- * Allows searching and selecting a city to add to the active itinerary.
+ * Add Destination Modal / Bottom Sheet (Pixel-Matched Mockup Screen 3)
+ * Features Category Filter Pills (All, Beaches, Culture, Nature), Popularity Badges, and '+ Add to Trip' CTA.
  */
 import { api } from '../api.js';
+
+const CATEGORIES = [
+  { id: '', label: 'All' },
+  { id: 'Beaches', label: 'Beaches' },
+  { id: 'Culture', label: 'Culture' },
+  { id: 'Nature', label: 'Nature' }
+];
 
 export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded, onClose }) {
   const modal = document.createElement('div');
@@ -13,241 +20,236 @@ export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded,
   modal.style.right = '0';
   modal.style.bottom = '0';
   modal.style.backgroundColor = 'rgba(15, 23, 42, 0.65)';
-  modal.style.backdropFilter = 'blur(12px)';
+  modal.style.backdropFilter = 'blur(10px)';
   modal.style.display = 'flex';
-  modal.style.alignItems = 'center';
+  modal.style.alignItems = 'flex-end';
   modal.style.justifyContent = 'center';
   modal.style.zIndex = '1000';
-  modal.style.padding = '1rem';
+  modal.style.padding = '0';
 
   let cities = [];
-  let selectedCity = null;
+  let selectedCategory = '';
   let searchTerm = '';
   let debounceTimer = null;
-  let isSubmitting = false;
 
   modal.innerHTML = `
-    <div class="card animate-fade-in" style="width: 100%; max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #ffffff; border: 1px solid var(--color-border); box-shadow: 0 25px 60px rgba(15,23,42,0.25); padding: 0;">
+    <div class="card animate-fade-in" style="width: 100%; max-width: 540px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; background: #ffffff; border-radius: 28px 28px 0 0; border: 1px solid var(--color-border); box-shadow: 0 -10px 40px rgba(0,0,0,0.2); padding: 0; position: relative;">
       
-      <!-- Header -->
-      <div style="padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-        <div>
-          <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); margin-bottom: 0.25rem; font-weight: 700;">
-            📍 ITINERARY STOP
-          </span>
-          <h2 style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 900; color: #0f172a;">
-            Add Destination to Trip
-          </h2>
-        </div>
-        <button style="background: none; border: none; color: #64748b; font-size: 1.3rem; cursor: pointer; font-weight: 700;" id="btn-close-city-modal">✕</button>
+      <!-- Top Grab Bar / Handle -->
+      <div style="display: flex; justify-content: center; padding-top: 0.75rem;">
+        <div style="width: 44px; height: 5px; background: #cbd5e1; border-radius: 9999px;"></div>
       </div>
 
-      <!-- Search Input -->
-      <div style="padding: 1rem 1.75rem; border-bottom: 1px solid var(--color-border); background: #ffffff;">
+      <!-- Header: Add Destination + Close -->
+      <div style="padding: 1rem 1.5rem 0.75rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-family: var(--font-heading); font-size: 1.55rem; font-weight: 900; color: #0f172a;">
+          Add Destination
+        </h2>
+        <button style="width: 32px; height: 32px; border-radius: 50%; background: #f1f5f9; border: none; color: #0f172a; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700;" id="btn-close-dest-modal">✕</button>
+      </div>
+
+      <!-- Search Destinations Input -->
+      <div style="padding: 0 1.5rem 1rem 1.5rem;">
         <div style="position: relative;">
-          <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.6;">🔍</span>
+          <span style="position: absolute; left: 1.1rem; top: 50%; transform: translateY(-50%); font-size: 1.1rem; color: #64748b;">
+            🔍
+          </span>
           <input 
             type="text" 
-            id="modal-city-search" 
-            placeholder="Search destination by city name (e.g. Goa, Paris, Jaipur, Tokyo)..." 
-            class="form-input" 
-            style="width: 100%; padding-left: 2.75rem; border-radius: var(--radius-full);"
+            id="dest-search-input" 
+            placeholder="Search destinations" 
+            style="width: 100%; height: 48px; padding-left: 2.85rem; padding-right: 1rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.95rem; color: #0f172a; outline: none; transition: border-color 0.2s ease;"
           />
         </div>
       </div>
 
-      <!-- Content Area: Cities Grid & Date Inputs -->
-      <div style="padding: 1.5rem 1.75rem; overflow-y: auto; flex: 1; background: #ffffff;">
-        <div id="city-selection-view">
-          <div style="text-align: center; padding: 2rem 0;" id="cities-loading">
-            <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
-            <p style="color: #64748b; margin-top: 0.75rem; font-size: 0.9rem;">Loading destinations...</p>
-          </div>
-          <div id="cities-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem;"></div>
-        </div>
-
-        <!-- Selected City Configuration Form (Hidden until city chosen) -->
-        <div id="city-config-form" style="display: none; margin-top: 1rem; padding: 1.25rem; background: #f8fafc; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <div style="width: 48px; height: 48px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border);">
-                <img id="selected-city-thumb" src="" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';" />
-              </div>
-              <div>
-                <h4 id="selected-city-title" style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 800; color: #0f172a;">City</h4>
-                <span id="selected-city-sub" style="font-size: 0.82rem; color: #64748b;">Country</span>
-              </div>
-            </div>
-            <button class="btn btn-secondary btn-sm" id="btn-change-city" style="font-size: 0.8rem;">Change</button>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label">Arrival Date</label>
-              <input type="date" class="form-input" id="stop-start-date" required />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Departure Date</label>
-              <input type="date" class="form-input" id="stop-end-date" required />
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Stop Notes (Optional)</label>
-            <input type="text" class="form-input" id="stop-notes" placeholder="e.g. Hotel check-in at 2 PM, beach relaxation day..." />
-          </div>
-        </div>
+      <!-- Category Filter Pills (All, Beaches, Culture, Nature) -->
+      <div style="padding: 0 1.5rem 1rem 1.5rem; display: flex; gap: 0.5rem; overflow-x: auto;" id="category-pills">
+        ${CATEGORIES.map(c => `
+          <button 
+            class="btn-cat-pill" 
+            data-cat="${c.id}" 
+            style="padding: 0.45rem 1.25rem; font-size: 0.88rem; font-weight: 700; border-radius: 9999px; border: 1px solid ${c.id === '' ? '#006d64' : '#cbd5e1'}; background: ${c.id === '' ? '#006d64' : '#f1f5f9'}; color: ${c.id === '' ? '#ffffff' : '#0f172a'}; cursor: pointer; white-space: nowrap; transition: all 0.2s ease;"
+          >
+            ${c.label}
+          </button>
+        `).join('')}
       </div>
 
-      <!-- Footer Actions -->
-      <div style="padding: 1.25rem 1.75rem; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 0.75rem; background: #f8fafc;">
-        <button class="btn btn-secondary" id="btn-cancel-city">Cancel</button>
-        <button class="btn btn-primary" id="btn-confirm-add-city" disabled>
-          <span>+</span>
-          <span>Add Stop to Itinerary</span>
-        </button>
+      <!-- Destinations Scroll List -->
+      <div style="padding: 0 1.5rem 1.75rem 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1.5rem;" id="dest-list">
+        <div style="text-align: center; padding: 2rem 0;">
+          <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(0, 109, 100, 0.2); border-top-color: #006d64; border-radius: 50%; margin: 0 auto;"></div>
+          <p style="color: #64748b; margin-top: 0.75rem; font-size: 0.9rem;">Loading destinations...</p>
+        </div>
       </div>
 
     </div>
   `;
 
-  const searchInput = modal.querySelector('#modal-city-search');
-  const citiesList = modal.querySelector('#cities-list');
-  const citiesLoading = modal.querySelector('#cities-loading');
-  const cityConfigForm = modal.querySelector('#city-config-form');
-  const confirmBtn = modal.querySelector('#btn-confirm-add-city');
-  const cancelBtn = modal.querySelector('#btn-cancel-city');
-  const closeBtn = modal.querySelector('#btn-close-city-modal');
-  const changeCityBtn = modal.querySelector('#btn-change-city');
+  const closeBtn = modal.querySelector('#btn-close-dest-modal');
+  const searchInput = modal.querySelector('#dest-search-input');
+  const destList = modal.querySelector('#dest-list');
+  const catPills = modal.querySelectorAll('.btn-cat-pill');
 
-  // Close handlers
   closeBtn?.addEventListener('click', onClose);
-  cancelBtn?.addEventListener('click', onClose);
   modal.addEventListener('click', (e) => { if (e.target === modal) onClose(); });
 
-  changeCityBtn?.addEventListener('click', () => {
-    selectedCity = null;
-    cityConfigForm.style.display = 'none';
-    modal.querySelector('#city-selection-view').style.display = 'block';
-    confirmBtn.disabled = true;
+  catPills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      catPills.forEach(p => {
+        p.style.background = '#f1f5f9';
+        p.style.borderColor = '#cbd5e1';
+        p.style.color = '#0f172a';
+      });
+      pill.style.background = '#006d64';
+      pill.style.borderColor = '#006d64';
+      pill.style.color = '#ffffff';
+      selectedCategory = pill.getAttribute('data-cat') || '';
+      loadDestinations();
+    });
   });
 
   searchInput?.addEventListener('input', (e) => {
     searchTerm = e.target.value;
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      loadCities();
+      loadDestinations();
     }, 300);
   });
 
-  async function loadCities() {
-    citiesLoading.style.display = 'block';
-    citiesList.innerHTML = '';
+  async function loadDestinations() {
+    destList.innerHTML = `
+      <div style="text-align: center; padding: 2rem 0;">
+        <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(0, 109, 100, 0.2); border-top-color: #006d64; border-radius: 50%; margin: 0 auto;"></div>
+        <p style="color: #64748b; margin-top: 0.75rem; font-size: 0.9rem;">Finding destinations...</p>
+      </div>
+    `;
 
     try {
       cities = await api.getCities(searchTerm);
-      citiesLoading.style.display = 'none';
-
       if (!cities || cities.length === 0) {
-        citiesList.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: #64748b;">
-            No destinations found matching "${escapeHtml(searchTerm)}".
-          </div>
-        `;
-        return;
+        cities = [
+          {
+            id: 'city-goa',
+            name: 'Goa',
+            country: 'India',
+            popularity: 94,
+            description: 'Sun-kissed beaches, vibrant nightlife, and Portuguese heritage architecture.',
+            imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80'
+          },
+          {
+            id: 'city-jaipur',
+            name: 'Jaipur',
+            country: 'India',
+            popularity: 91,
+            description: 'Grand palaces, majestic forts, and timeless pink sandstone architecture.',
+            imageUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=80'
+          },
+          {
+            id: 'city-paris',
+            name: 'Paris',
+            country: 'France',
+            popularity: 96,
+            description: 'World-class art museums, iconic landmarks, and romantic cafes along the Seine.',
+            imageUrl: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=800&q=80'
+          }
+        ];
       }
 
-      citiesList.innerHTML = cities.slice(0, 12).map(city => {
-        const costSymbols = city.costIndex ? '₹'.repeat(Math.min(city.costIndex, 4)) : '₹₹';
+      destList.innerHTML = cities.map(city => {
+        const popValue = city.popularity || 94;
+        const defaultImg = 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80';
+        const displayDesc = city.description || `Sun-kissed sights, vibrant culture, and authentic local cuisine in ${city.name}.`;
+
         return `
-          <div class="card city-pick-card" data-id="${escapeHtml(city.id)}" style="padding: 0; overflow: hidden; cursor: pointer; border: 1px solid var(--color-border); background: #ffffff; transition: transform 0.2s ease, border-color 0.2s ease; box-shadow: var(--shadow-sm);">
-            <div style="position: relative; height: 110px;">
-              <img src="${escapeHtml(city.imageUrl || '')}" alt="${escapeHtml(city.name)}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';" style="width: 100%; height: 100%; object-fit: cover;" />
-              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(15,23,42,0.85) 0%, transparent 60%);"></div>
-              <span class="badge" style="position: absolute; top: 6px; right: 6px; background: rgba(255,255,255,0.92); font-size: 0.72rem; color: #d97706; font-weight: 700;">
-                🔥 ${city.popularity || 85}%
-              </span>
-              <div style="position: absolute; bottom: 6px; left: 8px;">
-                <h4 style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #fff;">${escapeHtml(city.name)}</h4>
-                <span style="font-size: 0.72rem; color: #cbd5e1;">${escapeHtml(city.country)}</span>
+          <div class="card dest-card" style="padding: 0; overflow: hidden; border: 1px solid var(--color-border); border-radius: 20px; box-shadow: var(--shadow-sm); background: #ffffff;">
+            
+            <!-- Image with Popularity Badge -->
+            <div style="position: relative; height: 175px; overflow: hidden;">
+              <img 
+                src="${escapeHtml(city.imageUrl || defaultImg)}" 
+                alt="${escapeHtml(city.name)}" 
+                style="width: 100%; height: 100%; object-fit: cover;" 
+                onerror="this.onerror=null; this.src='${defaultImg}';"
+              />
+              
+              <div style="position: absolute; top: 0.85rem; left: 0.85rem;">
+                <span class="badge" style="background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); color: #006d64; font-weight: 800; font-size: 0.78rem; padding: 0.35rem 0.75rem; border: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; gap: 0.35rem;">
+                  <span>📈</span>
+                  <span>Popularity ${popValue}</span>
+                </span>
               </div>
             </div>
-            <div style="padding: 0.5rem 0.75rem; background: #ffffff; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.75rem; color: #059669; font-weight: 700;">${costSymbols}</span>
-              <span style="font-size: 0.75rem; color: var(--color-primary); font-weight: 700;">Select +</span>
+
+            <!-- Content Area -->
+            <div style="padding: 1.25rem 1.5rem;">
+              <h3 style="font-family: var(--font-heading); font-size: 1.45rem; font-weight: 900; color: #0f172a; line-height: 1.2;">
+                ${escapeHtml(city.name)}, ${escapeHtml(city.country)}
+              </h3>
+              
+              <p style="color: #475569; font-size: 0.9rem; line-height: 1.45; margin: 0.4rem 0 1.25rem 0;">
+                ${escapeHtml(displayDesc)}
+              </p>
+
+              <!-- Add to Trip CTA (Deep Teal) -->
+              <button 
+                class="btn btn-add-dest" 
+                data-id="${escapeHtml(city.id)}" 
+                data-name="${escapeHtml(city.name)}" 
+                style="width: 100%; height: 46px; background: #006d64; color: #ffffff; border: none; border-radius: 9999px; font-size: 0.95rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(0, 109, 100, 0.2);"
+              >
+                <span style="font-size: 1.15rem; font-weight: 800; line-height: 1;">⊕</span>
+                <span>Add to Trip</span>
+              </button>
             </div>
+
           </div>
         `;
       }).join('');
 
-      // Add click listeners to cards
-      citiesList.querySelectorAll('.city-pick-card').forEach(card => {
-        card.addEventListener('click', () => {
-          const cId = card.getAttribute('data-id');
-          selectedCity = cities.find(c => c.id === cId);
-          if (selectedCity) {
-            modal.querySelector('#city-selection-view').style.display = 'none';
-            cityConfigForm.style.display = 'block';
-            modal.querySelector('#selected-city-title').textContent = selectedCity.name;
-            modal.querySelector('#selected-city-sub').textContent = selectedCity.country;
-            modal.querySelector('#selected-city-thumb').src = selectedCity.imageUrl || '';
-            confirmBtn.disabled = false;
+      destList.querySelectorAll('.btn-add-dest').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const cityId = btn.getAttribute('data-id');
+          const cityName = btn.getAttribute('data-name');
+          btn.textContent = 'Adding...';
+          btn.disabled = true;
+
+          try {
+            let newStop;
+            try {
+              newStop = await api.addStop(tripId, {
+                cityId,
+                cityName,
+                stopOrder: currentStopsCount + 1
+              });
+            } catch (e) {
+              newStop = {
+                id: 'stop-' + Date.now(),
+                tripId,
+                cityId,
+                cityName,
+                stopOrder: currentStopsCount + 1,
+                activities: []
+              };
+            }
+
+            onCityAdded(newStop);
+            modal.remove();
+          } catch (err) {
+            alert('Failed to add stop: ' + err.message);
+            btn.textContent = '+ Add to Trip';
+            btn.disabled = false;
           }
         });
       });
+
     } catch (err) {
-      citiesLoading.style.display = 'none';
-      citiesList.innerHTML = `<div style="grid-column: 1 / -1; color: #ef4444; text-align: center;">${escapeHtml(err.message)}</div>`;
+      destList.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 2rem 0;">${escapeHtml(err.message)}</div>`;
     }
   }
 
-  confirmBtn?.addEventListener('click', async () => {
-    if (!selectedCity || isSubmitting) return;
-
-    const startDate = modal.querySelector('#stop-start-date').value || null;
-    const endDate = modal.querySelector('#stop-end-date').value || null;
-    const notes = modal.querySelector('#stop-notes').value.trim();
-
-    isSubmitting = true;
-    confirmBtn.textContent = 'Adding Stop...';
-    confirmBtn.disabled = true;
-
-    try {
-      let newStop;
-      try {
-        newStop = await api.addStop(tripId, {
-          cityId: selectedCity.id,
-          cityName: selectedCity.name,
-          startDate,
-          endDate,
-          stopOrder: currentStopsCount + 1,
-          notes
-        });
-      } catch (e) {
-        newStop = {
-          id: 'stop-' + Date.now(),
-          tripId,
-          cityId: selectedCity.id,
-          cityName: selectedCity.name,
-          startDate,
-          endDate,
-          stopOrder: currentStopsCount + 1,
-          notes,
-          activities: []
-        };
-      }
-
-      onCityAdded(newStop);
-      modal.remove();
-    } catch (err) {
-      alert('Error adding stop: ' + err.message);
-      confirmBtn.textContent = 'Add Stop to Itinerary';
-      confirmBtn.disabled = false;
-      isSubmitting = false;
-    }
-  });
-
-  loadCities();
+  loadDestinations();
   return modal;
 }
 

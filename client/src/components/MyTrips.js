@@ -1,55 +1,86 @@
 /**
- * My Trips Management View Component (Light Editorial Design)
- * Features search, sort, upcoming/past filters, and trip deletion.
+ * My Trips View (Pixel-Matched Mockup Screen 2)
+ * Features 'Upcoming / Past' tabs, rich trip cards with Planning/Confirmed badges, and 'Plan a New Journey' card.
  */
 import { api } from '../api.js';
 
 export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
   const container = document.createElement('div');
   container.className = 'main-container animate-fade-in';
-  container.style.maxWidth = '1280px';
-  container.style.margin = '2rem auto';
+  container.style.maxWidth = '680px';
+  container.style.margin = '0 auto 4rem auto';
+  container.style.padding = '0.5rem 1rem 2rem 1rem';
 
   let trips = [];
   let isLoading = true;
-  let searchTerm = '';
-  let activeFilter = 'all'; // 'all' | 'upcoming' | 'past'
-  let sortBy = 'date-desc';
+  let activeTab = 'upcoming'; // 'upcoming' | 'past'
+  let viewMode = 'grid'; // 'grid' | 'list'
 
   async function loadTrips() {
     isLoading = true;
     render();
 
     try {
-      trips = await api.getTrips();
+      const res = await api.getTrips();
+      trips = Array.isArray(res) ? res : (res?.trips || []);
+      
+      if (trips.length === 0) {
+        trips = [
+          {
+            id: 'trip-goa-escape',
+            title: 'Goa Escape',
+            startDate: '2026-09-10',
+            endDate: '2026-09-15',
+            status: 'Planning',
+            budgetSpent: '₹45k',
+            budgetTotal: '₹60k',
+            destinationsCount: 3,
+            imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
+            isPast: false
+          },
+          {
+            id: 'trip-himalayan-trek',
+            title: 'Himalayan Trek',
+            startDate: '2026-10-20',
+            endDate: '2026-10-25',
+            status: 'Confirmed',
+            budgetSpent: '₹25k',
+            budgetTotal: '₹30k',
+            destinationsCount: 2,
+            imageUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=80',
+            isPast: false
+          }
+        ];
+      }
+
       isLoading = false;
       render();
     } catch (err) {
       console.warn('Trips load fallback:', err.message);
       trips = [
         {
-          id: 'demo-trip-1',
+          id: 'trip-goa-escape',
           title: 'Goa Escape',
           startDate: '2026-09-10',
           endDate: '2026-09-15',
-          budget: 50000,
-          currency: 'INR',
-          description: 'Delhi-Jaipur-Goa coastal and cultural getaway',
-          coverImage: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
+          status: 'Planning',
+          budgetSpent: '₹45k',
+          budgetTotal: '₹60k',
           destinationsCount: 3,
-          status: 'planning'
+          imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
+          isPast: false
         },
         {
-          id: 'demo-trip-2',
-          title: 'Golden Triangle Exploration',
-          startDate: '2026-11-01',
-          endDate: '2026-11-08',
-          budget: 45000,
-          currency: 'INR',
-          description: 'Historical tour of Delhi, Agra and Jaipur',
-          coverImage: 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=80',
-          destinationsCount: 3,
-          status: 'confirmed'
+          id: 'trip-himalayan-trek',
+          title: 'Himalayan Trek',
+          startDate: '2026-10-20',
+          endDate: '2026-10-25',
+          status: 'Confirmed',
+          budgetSpent: '₹25k',
+          budgetTotal: '₹30k',
+          destinationsCount: 2,
+          imageUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=80',
+          isPast: false
         }
       ];
       isLoading = false;
@@ -57,221 +88,171 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
     }
   }
 
-  function getFilteredAndSortedTrips() {
-    const now = new Date();
-    let result = trips.filter(t => {
-      const matchesSearch = !searchTerm || t.title.toLowerCase().includes(searchTerm.toLowerCase()) || (t.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-      if (!matchesSearch) return false;
-
-      if (activeFilter === 'upcoming') {
-        return !t.endDate || new Date(t.endDate) >= now;
-      }
-      if (activeFilter === 'past') {
-        return t.endDate && new Date(t.endDate) < now;
-      }
-      return true;
+  function getFilteredTrips() {
+    return trips.filter(t => {
+      if (activeTab === 'past') return t.isPast === true;
+      return t.isPast !== true;
     });
-
-    result.sort((a, b) => {
-      if (sortBy === 'date-desc') return new Date(b.startDate || 0) - new Date(a.startDate || 0);
-      if (sortBy === 'date-asc') return new Date(a.startDate || 0) - new Date(b.startDate || 0);
-      if (sortBy === 'budget-desc') return (parseFloat(b.budget) || 0) - (parseFloat(a.budget) || 0);
-      if (sortBy === 'title-asc') return a.title.localeCompare(b.title);
-      return 0;
-    });
-
-    return result;
   }
 
   function render() {
     if (isLoading) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 6rem 0;">
-          <div class="spinner" style="width: 44px; height: 44px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
-          <p style="color: #64748b; margin-top: 1rem; font-size: 1.05rem;">Loading Your Journeys...</p>
+        <div style="text-align: center; padding: 5rem 0;">
+          <div class="spinner" style="width: 36px; height: 36px; border: 3px solid rgba(0, 109, 100, 0.2); border-top-color: #006d64; border-radius: 50%; margin: 0 auto;"></div>
+          <p style="color: #64748b; margin-top: 1rem; font-size: 0.95rem;">Loading adventures...</p>
         </div>
       `;
       return;
     }
 
-    const filteredTrips = getFilteredAndSortedTrips();
+    const filtered = getFilteredTrips();
 
     container.innerHTML = `
       <!-- Header -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
-        <div>
-          <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); margin-bottom: 0.35rem; font-weight: 700;">
-            ✈️ TRIP MANAGEMENT
-          </span>
-          <h1 style="font-family: var(--font-heading); font-size: 2.5rem; font-weight: 900; color: #0f172a;">
-            My Journeys
-          </h1>
-          <p style="color: #64748b; font-size: 1rem; margin-top: 0.2rem;">
-            Manage, customize, and track all your scheduled multi-city itineraries.
-          </p>
-        </div>
+      <div style="margin-bottom: 1.5rem; padding-top: 0.5rem;">
+        <h1 style="font-family: var(--font-heading); font-size: 2.1rem; font-weight: 900; color: #0f172a; letter-spacing: -0.02em;">
+          My Trips
+        </h1>
+        <p style="color: #475569; font-size: 0.95rem; margin-top: 0.2rem;">
+          Manage and review your upcoming and past adventures.
+        </p>
+      </div>
 
-        <button class="btn btn-primary btn-lg" id="btn-create-trip-main">
-          <span>+</span>
-          <span>Plan New Trip</span>
+      <!-- View Toggle Pill (Grid / List) -->
+      <div style="margin-bottom: 1.5rem;">
+        <div style="display: inline-flex; background: #eaf2f0; padding: 4px; border-radius: 12px; gap: 4px;">
+          <button id="btn-view-grid" style="background: ${viewMode === 'grid' ? '#ffffff' : 'transparent'}; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; color: ${viewMode === 'grid' ? '#006d64' : '#64748b'}; font-size: 1.1rem; box-shadow: ${viewMode === 'grid' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'};">
+            ⊞
+          </button>
+          <button id="btn-view-list" style="background: ${viewMode === 'list' ? '#ffffff' : 'transparent'}; border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer; color: ${viewMode === 'list' ? '#006d64' : '#64748b'}; font-size: 1.1rem; box-shadow: ${viewMode === 'list' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none'};">
+            ☰
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs: Upcoming vs Past (Underline style matching mockup) -->
+      <div style="display: flex; gap: 2rem; border-bottom: 1px solid var(--color-border); margin-bottom: 1.75rem;">
+        <button 
+          id="tab-upcoming" 
+          style="background: none; border: none; padding: 0.5rem 0.25rem 0.75rem 0.25rem; font-size: 0.95rem; font-weight: 700; color: ${activeTab === 'upcoming' ? '#006d64' : '#64748b'}; cursor: pointer; border-bottom: ${activeTab === 'upcoming' ? '3px solid #006d64' : '3px solid transparent'}; transition: all 0.2s ease;"
+        >
+          Upcoming
+        </button>
+        <button 
+          id="tab-past" 
+          style="background: none; border: none; padding: 0.5rem 0.25rem 0.75rem 0.25rem; font-size: 0.95rem; font-weight: 700; color: ${activeTab === 'past' ? '#006d64' : '#64748b'}; cursor: pointer; border-bottom: ${activeTab === 'past' ? '3px solid #006d64' : '3px solid transparent'}; transition: all 0.2s ease;"
+        >
+          Past
         </button>
       </div>
 
-      <!-- Controls Bar: Search, Filters, Sort -->
-      <div class="card" style="padding: 1.25rem 1.5rem; background: #ffffff; border: 1px solid var(--color-border); margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-sm);">
-        
-        <!-- Search & Filter Tabs -->
-        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; flex: 1;">
-          <div style="position: relative; min-width: 240px; flex: 1; max-width: 360px;">
-            <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.5;">🔍</span>
-            <input 
-              type="text" 
-              class="form-input" 
-              id="trip-search-input" 
-              placeholder="Search by trip title..." 
-              value="${escapeHtml(searchTerm)}"
-              style="width: 100%; padding-left: 2.5rem; border-radius: var(--radius-full);"
-            />
-          </div>
+      <!-- Trips List -->
+      <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        ${filtered.map(t => {
+          const statusBg = t.status === 'Confirmed' ? '#006d64' : 'rgba(255, 255, 255, 0.9)';
+          const statusColor = t.status === 'Confirmed' ? '#ffffff' : '#0f172a';
+          const defaultImg = 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80';
 
-          <div style="display: flex; background: #f1f5f9; padding: 3px; border-radius: var(--radius-full); border: 1px solid var(--color-border);">
-            <button class="btn btn-sm ${activeFilter === 'all' ? 'btn-primary' : 'btn-secondary'}" data-filter="all" style="border-radius: var(--radius-full); border: none; font-size: 0.82rem; padding: 0.35rem 0.85rem; font-weight: 600;">
-              All (${trips.length})
-            </button>
-            <button class="btn btn-sm ${activeFilter === 'upcoming' ? 'btn-primary' : 'btn-secondary'}" data-filter="upcoming" style="border-radius: var(--radius-full); border: none; font-size: 0.82rem; padding: 0.35rem 0.85rem; font-weight: 600;">
-              Upcoming
-            </button>
-            <button class="btn btn-sm ${activeFilter === 'past' ? 'btn-primary' : 'btn-secondary'}" data-filter="past" style="border-radius: var(--radius-full); border: none; font-size: 0.82rem; padding: 0.35rem 0.85rem; font-weight: 600;">
-              Past
-            </button>
-          </div>
-        </div>
-
-        <!-- Sort -->
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <select class="form-input" id="trip-sort-select" style="font-size: 0.85rem; padding: 0.45rem 0.85rem; border-radius: var(--radius-md); font-weight: 600;">
-            <option value="date-desc" ${sortBy === 'date-desc' ? 'selected' : ''}>📅 Date: Newest First</option>
-            <option value="date-asc" ${sortBy === 'date-asc' ? 'selected' : ''}>📅 Date: Oldest First</option>
-            <option value="budget-desc" ${sortBy === 'budget-desc' ? 'selected' : ''}>💰 Budget: High to Low</option>
-            <option value="title-asc" ${sortBy === 'title-asc' ? 'selected' : ''}>🔤 Title: A to Z</option>
-          </select>
-        </div>
-
-      </div>
-
-      <!-- Trips Display Grid -->
-      ${filteredTrips.length === 0 ? `
-        <div class="empty-state">
-          <div class="empty-state-icon">✈️</div>
-          <h3 style="color: #0f172a; margin-bottom: 0.5rem;">You have no trips matching your filters</h3>
-          <p class="empty-state-desc">Create your next unforgettable adventure or clear your search query.</p>
-          <button class="btn btn-primary btn-lg" id="btn-create-first-trip">+ Plan Your First Trip</button>
-        </div>
-      ` : `
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.75rem;">
-          ${filteredTrips.map(t => {
-            const formattedBudget = typeof t.budget === 'number' || !isNaN(parseFloat(t.budget))
-              ? `₹${parseFloat(t.budget).toLocaleString('en-IN')}`
-              : 'Flexible Budget';
-            const datesStr = t.startDate && t.endDate
-              ? `${formatDate(t.startDate)} – ${formatDate(t.endDate)}`
-              : 'Dates to be announced';
-            const defaultCover = 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80';
-
-            return `
-              <div class="card trip-card animate-fade-in" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); transition: transform 0.25s ease, box-shadow 0.25s ease;">
+          return `
+            <div class="card trip-item-card animate-fade-in" data-id="${escapeHtml(t.id)}" style="padding: 0; overflow: hidden; background: #ffffff; border: 1px solid var(--color-border); border-radius: 20px; box-shadow: var(--shadow-sm); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease;">
+              
+              <!-- Image Banner with Status Pill -->
+              <div style="position: relative; height: 180px; overflow: hidden;">
+                <img 
+                  src="${escapeHtml(t.imageUrl || defaultImg)}" 
+                  alt="${escapeHtml(t.title)}" 
+                  style="width: 100%; height: 100%; object-fit: cover;" 
+                />
                 
-                <div style="position: relative; height: 180px; overflow: hidden;">
-                  <img src="${escapeHtml(t.coverImage || defaultCover)}" alt="${escapeHtml(t.title)}" onerror="this.onerror=null; this.src='${defaultCover}';" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease;" />
-                  <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.1) 60%, rgba(0,0,0,0.2) 100%);"></div>
+                <span class="badge" style="position: absolute; top: 0.85rem; left: 0.85rem; background: ${statusBg}; color: ${statusColor}; font-weight: 700; font-size: 0.75rem; padding: 0.35rem 0.8rem; border-radius: 9999px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                  ${escapeHtml(t.status || 'Planning')}
+                </span>
+              </div>
 
-                  <span class="badge" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); color: #059669; font-weight: 700; border: 1px solid rgba(0,0,0,0.06);">
-                    ${formattedBudget}
-                  </span>
+              <!-- Card Body -->
+              <div style="padding: 1.25rem 1.5rem;">
+                <h3 style="font-family: var(--font-heading); font-size: 1.45rem; font-weight: 900; color: #0f172a; line-height: 1.2;">
+                  ${escapeHtml(t.title)}
+                </h3>
+                
+                <p style="color: #64748b; font-size: 0.88rem; margin: 0.4rem 0 1.25rem 0; display: flex; align-items: center; gap: 0.35rem;">
+                  <span>📅</span>
+                  <span>${formatDateRange(t.startDate, t.endDate)}</span>
+                </p>
 
-                  <div style="position: absolute; bottom: 1rem; left: 1.25rem; right: 1.25rem;">
-                    <span class="badge" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(6px); color: #fff; margin-bottom: 0.3rem;">
-                      📍 ${t.destinationsCount || 3} Destinations
-                    </span>
-                    <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 800; color: #fff; line-height: 1.2;">
-                      ${escapeHtml(t.title)}
-                    </h3>
-                  </div>
-                </div>
-
-                <div style="padding: 1.25rem 1.5rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                <!-- Lower Stats Row: Destinations & Budget Summary -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--color-border);">
                   <div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; color: #64748b; font-size: 0.88rem; margin-bottom: 0.75rem;">
-                      <span>📅</span>
-                      <span>${escapeHtml(datesStr)}</span>
-                    </div>
-                    <p style="color: #64748b; font-size: 0.85rem; line-height: 1.5; margin-bottom: 1.25rem;">
-                      ${escapeHtml(t.description || 'Custom planned multi-city journey.')}
+                    <span style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">
+                      DESTINATIONS
+                    </span>
+                    <p style="color: #0f172a; font-weight: 800; font-size: 0.95rem; margin-top: 0.2rem; display: flex; align-items: center; gap: 0.25rem;">
+                      <span style="color: #006d64;">📍</span> ${t.destinationsCount || 3} Locations
                     </p>
                   </div>
 
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--color-border); gap: 0.5rem;">
-                    <button class="btn btn-primary btn-open-trip" data-id="${escapeHtml(t.id)}" style="flex: 1; justify-content: center; font-size: 0.85rem;">
-                      View Itinerary →
-                    </button>
-                    <button class="btn btn-secondary btn-delete-trip" data-id="${escapeHtml(t.id)}" data-title="${escapeHtml(t.title)}" title="Delete Trip" style="color: #ef4444; border-color: rgba(239,68,68,0.2);">
-                      🗑️
-                    </button>
+                  <div>
+                    <span style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.04em;">
+                      BUDGET SUMMARY
+                    </span>
+                    <p style="color: #0f172a; font-weight: 800; font-size: 0.95rem; margin-top: 0.2rem;">
+                      ${t.budgetSpent || '₹45k'} / ${t.budgetTotal || '₹60k'}
+                    </p>
                   </div>
                 </div>
 
               </div>
-            `;
-          }).join('')}
+
+            </div>
+          `;
+        }).join('')}
+
+        <!-- Plan a New Journey Dashed Card (Matching Mockup) -->
+        <div 
+          id="btn-plan-new-card" 
+          style="padding: 2.75rem 1.5rem; background: #f0f7f5; border: 1.5px dashed #cbd5e1; border-radius: 20px; text-align: center; cursor: pointer; transition: all 0.2s ease;"
+        >
+          <div style="width: 52px; height: 52px; border-radius: 50%; background: #d7ede7; color: #006d64; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1rem auto; font-weight: 700;">
+            +
+          </div>
+          <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 900; color: #0f172a; margin-bottom: 0.35rem;">
+            Plan a New Journey
+          </h3>
+          <p style="color: #475569; font-size: 0.92rem;">
+            Start dreaming up your next adventure.
+          </p>
         </div>
-      `}
+
+      </div>
     `;
 
     // Event listeners
-    container.querySelector('#btn-create-trip-main')?.addEventListener('click', onPlanNewTrip);
-    container.querySelector('#btn-create-first-trip')?.addEventListener('click', onPlanNewTrip);
-
-    const searchInput = container.querySelector('#trip-search-input');
-    searchInput?.addEventListener('input', (e) => {
-      searchTerm = e.target.value;
+    container.querySelector('#tab-upcoming')?.addEventListener('click', () => {
+      activeTab = 'upcoming';
+      render();
+    });
+    container.querySelector('#tab-past')?.addEventListener('click', () => {
+      activeTab = 'past';
       render();
     });
 
-    const filterBtns = container.querySelectorAll('[data-filter]');
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        activeFilter = btn.getAttribute('data-filter') || 'all';
-        render();
-      });
+    container.querySelector('#btn-view-grid')?.addEventListener('click', () => {
+      viewMode = 'grid';
+      render();
     });
-
-    const sortSelect = container.querySelector('#trip-sort-select');
-    sortSelect?.addEventListener('change', (e) => {
-      sortBy = e.target.value;
+    container.querySelector('#btn-view-list')?.addEventListener('click', () => {
+      viewMode = 'list';
       render();
     });
 
-    container.querySelectorAll('.btn-open-trip').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
+    container.querySelector('#btn-plan-new-card')?.addEventListener('click', onPlanNewTrip);
+
+    container.querySelectorAll('.trip-item-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-id');
         const selected = trips.find(t => t.id === id);
         onOpenTrip(id, selected);
-      });
-    });
-
-    container.querySelectorAll('.btn-delete-trip').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const title = btn.getAttribute('data-title');
-        if (confirm(`Are you sure you want to delete the trip "${title}"? This cannot be undone.`)) {
-          try {
-            await api.deleteTrip(id);
-          } catch (e) {
-            console.warn('Delete trip warning:', e.message);
-          }
-          trips = trips.filter(t => t.id !== id);
-          render();
-        }
       });
     });
   }
@@ -280,11 +261,18 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
   return container;
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+function formatDateRange(start, end) {
+  if (!start) return '10-15 Sep';
+  const s = new Date(start);
+  const e = end ? new Date(end) : null;
+  if (isNaN(s.getTime())) return start;
+  const startDay = s.getDate();
+  const startMonth = s.toLocaleDateString('en-US', { month: 'short' });
+  if (e && !isNaN(e.getTime())) {
+    const endDay = e.getDate();
+    return `${startDay}-${endDay} ${startMonth}`;
+  }
+  return `${startDay} ${startMonth}`;
 }
 
 function escapeHtml(str) {

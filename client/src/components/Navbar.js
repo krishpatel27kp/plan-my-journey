@@ -1,71 +1,57 @@
 /**
- * Navigation Bar Component
+ * Navigation Bar Component (Pixel-Matched Top Bar)
+ * Left Avatar • Centered/Brand 'Plan My Journey' • Right Search Icon
  */
 
 export function renderNavbar({ user, activeTab, onTabChange, onLogout, onOpenAuth }) {
   const nav = document.createElement('header');
   nav.className = 'navbar';
 
-  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
-  const avatarHtml = user?.profileImage
-    ? `<img src="${user.profileImage}" alt="${user.name}" onerror="this.onerror=null; this.parentElement.innerHTML='${userInitial}'" />`
-    : `<span>${userInitial}</span>`;
+  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : 'A';
+  const defaultAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80';
+  const avatarSrc = user?.profileImage || defaultAvatar;
 
   nav.innerHTML = `
-    <div class="brand" id="nav-brand">
-      <div class="brand-icon">✈️</div>
+    <!-- Left: User Avatar -->
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <div class="avatar" id="nav-avatar-btn" style="cursor: pointer; width: 40px; height: 40px; border: 2px solid #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+        ${user ? `<img src="${escapeHtml(avatarSrc)}" alt="${escapeHtml(user.name)}" onerror="this.onerror=null; this.parentElement.innerHTML='<span>${userInitial}</span>';" />` : `<span style="font-size: 1.1rem;">👤</span>`}
+      </div>
+    </div>
+
+    <!-- Center: Brand Title -->
+    <div class="brand" id="nav-brand" style="margin: 0 auto; display: flex; align-items: center; gap: 0.5rem; color: #006d64; font-family: var(--font-heading); font-size: 1.45rem; font-weight: 900; letter-spacing: -0.02em;">
       <span>Plan My Journey</span>
     </div>
 
-    <nav class="nav-links">
-      <button class="nav-btn ${activeTab === 'explore' ? 'active' : ''}" id="nav-tab-explore">
-        Explore Cities
+    <!-- Right: Search Icon / Actions -->
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <button id="nav-search-btn" style="background: none; border: none; font-size: 1.25rem; color: #0f172a; cursor: pointer; padding: 0.4rem; display: flex; align-items: center; justify-content: center; border-radius: 50%;" title="Search Destinations">
+        🔍
       </button>
-      ${user ? `
-        <button class="nav-btn ${activeTab === 'dashboard' ? 'active' : ''}" id="nav-tab-dashboard">
-          Dashboard
-        </button>
-        <button class="nav-btn ${activeTab === 'my-trips' ? 'active' : ''}" id="nav-tab-my-trips">
-          My Journeys
-        </button>
-        <button class="nav-btn ${activeTab === 'profile' ? 'active' : ''}" id="nav-tab-profile">
-          Profile & Settings
-        </button>
-      ` : ''}
-    </nav>
 
-    ${user ? `
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <button class="btn btn-primary btn-sm" id="nav-btn-create-trip" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; font-weight: 700;">
-          + Plan New Trip
+      ${user ? `
+        <button class="btn btn-secondary btn-sm" id="btn-logout" title="Log out" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; border-radius: var(--radius-full);">
+          Logout
         </button>
-        <div style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: var(--radius-md);" id="nav-user-badge">
-          <div class="avatar">${avatarHtml}</div>
-          <div style="display: flex; flex-direction: column; text-align: left; line-height: 1.2;">
-            <span style="font-weight: 600; font-size: 0.88rem; color: #fff;">${escapeHtml(user.name)}</span>
-          </div>
-        </div>
-        <button class="btn btn-secondary btn-sm" id="btn-logout" title="Log out" style="font-size: 0.8rem; padding: 0.4rem 0.75rem;">
-          Sign Out
+      ` : `
+        <button class="btn btn-primary btn-sm" id="nav-btn-login" style="font-size: 0.82rem; padding: 0.4rem 0.9rem;">
+          Sign In
         </button>
-      </div>
-    ` : `
-      <div style="display: flex; gap: 0.75rem;">
-        <button class="btn btn-primary btn-sm" id="nav-btn-login">
-          Sign In / Register
-        </button>
-      </div>
-    `}
+      `}
+    </div>
   `;
 
   // Event Listeners
   nav.querySelector('#nav-brand')?.addEventListener('click', () => onTabChange(user ? 'dashboard' : 'explore'));
-  nav.querySelector('#nav-tab-explore')?.addEventListener('click', () => onTabChange('explore'));
-  nav.querySelector('#nav-tab-dashboard')?.addEventListener('click', () => onTabChange('dashboard'));
-  nav.querySelector('#nav-tab-my-trips')?.addEventListener('click', () => onTabChange('my-trips'));
-  nav.querySelector('#nav-btn-create-trip')?.addEventListener('click', () => onTabChange('create-trip-modal'));
-  nav.querySelector('#nav-tab-profile')?.addEventListener('click', () => onTabChange('profile'));
-  nav.querySelector('#nav-user-badge')?.addEventListener('click', () => onTabChange('profile'));
+  nav.querySelector('#nav-avatar-btn')?.addEventListener('click', () => {
+    if (user) {
+      onTabChange('profile');
+    } else {
+      onOpenAuth();
+    }
+  });
+  nav.querySelector('#nav-search-btn')?.addEventListener('click', () => onTabChange('explore'));
   nav.querySelector('#btn-logout')?.addEventListener('click', onLogout);
   nav.querySelector('#nav-btn-login')?.addEventListener('click', onOpenAuth);
 
