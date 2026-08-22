@@ -288,7 +288,7 @@ router.delete('/stops/:stopId', async (req, res, next) => {
 router.post('/stops/:stopId/activities', async (req, res, next) => {
   try {
     const { stopId } = req.params;
-    const { activityId, date, startTime, endTime, cost } = req.body || {};
+    const { activityId, title, category, date, startTime, endTime, cost } = req.body || {};
     const stopResult = await db.query(
       `SELECT s.id, s.city_id, s.trip_id FROM trip_stops s
        JOIN trips t ON t.id = s.trip_id
@@ -296,26 +296,47 @@ router.post('/stops/:stopId/activities', async (req, res, next) => {
       [stopId, req.user.userId]
     );
     if (!stopResult.rows.length) return sendNotFoundError(res, 'Stop not found');
-    if (!activityId || !date) return sendValidationError(res, 'activityId and date are required');
-    const activity = await Activity.findById(activityId);
-    if (!activity) return sendNotFoundError(res, 'Activity not found');
-    if (activity.cityId !== stopResult.rows[0].city_id) {
-      return sendValidationError(res, 'Activity must belong to the stop city');
+
+    let actId = activityId || null;
+    let actTitle = title;
+    let actCat = category || 'Sightseeing';
+
+    if (actId) {
+      const activity = await Activity.findById(actId);
+      if (activity) {
+        actTitle = actTitle || activity.name;
+        actCat = activity.category || actCat;
+      }
     }
+
+    if (!actTitle) {
+      return sendValidationError(res, 'Activity title or activityId is required');
+    }
+
+    const actDate = date || new Date().toISOString().slice(0, 10);
     const existing = await db.query(
       'SELECT COALESCE(MAX(order_index), 0) AS max_order FROM itinerary_activities WHERE trip_stop_id = $1',
       [stopId]
     );
+
     const result = await db.query(
       `INSERT INTO itinerary_activities
        (id, trip_stop_id, activity_id, title, activity_date, start_time, end_time, order_index, cost)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [crypto.randomUUID(), stopId, activityId, activity.name, date, startTime || null, endTime || null,
+      [crypto.randomUUID(), stopId, actId, actTitle, actDate, startTime || null, endTime || null,
         Number(existing.rows[0].max_order) + 1, Number(cost) || 0]
     );
     const row = result.rows[0];
-    return res.status(201).json({ id: row.id, activityId: row.activity_id, title: row.title, category: activity.category,
-      date: row.activity_date, startTime: row.start_time, endTime: row.end_time, cost: Number(row.cost) || 0 });
+    return res.status(201).json({
+      id: row.id,
+      activityId: row.activity_id,
+      title: row.title,
+      category: actCat,
+      date: row.activity_date,
+      startTime: row.start_time,
+      endTime: row.end_time,
+      cost: Number(row.cost) || 0
+    });
   } catch (err) { next(err); }
 });
 

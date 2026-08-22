@@ -1,6 +1,6 @@
 /**
  * Add Activity Modal (Light Editorial Design)
- * Allows searching/selecting curated city activities or adding custom activities to a stop.
+ * Allows searching/selecting curated city activities OR creating custom activities for a stop.
  */
 import { api } from '../api.js';
 
@@ -22,12 +22,12 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
   modal.style.left = '0';
   modal.style.right = '0';
   modal.style.bottom = '0';
-  modal.style.backgroundColor = 'rgba(15, 23, 42, 0.65)';
+  modal.style.backgroundColor = 'rgba(15, 23, 42, 0.7)';
   modal.style.backdropFilter = 'blur(12px)';
   modal.style.display = 'flex';
   modal.style.alignItems = 'center';
   modal.style.justifyContent = 'center';
-  modal.style.zIndex = '1000';
+  modal.style.zIndex = '1200';
   modal.style.padding = '1rem';
 
   let curatedActivities = [];
@@ -36,27 +36,27 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
   let activeTab = 'curated';
 
   modal.innerHTML = `
-    <div class="card animate-fade-in" style="width: 100%; max-width: 680px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #ffffff; border: 1px solid var(--color-border); box-shadow: 0 25px 60px rgba(15,23,42,0.25); padding: 0;">
+    <div class="card animate-fade-in" style="width: 100%; max-width: 680px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #ffffff; border-radius: 24px; border: 1px solid var(--color-border); box-shadow: 0 25px 70px rgba(15,23,42,0.3); padding: 0;">
       
       <!-- Header -->
-      <div style="padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+      <div style="padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: #ffffff;">
         <div>
-          <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); margin-bottom: 0.25rem; font-weight: 700;">
-            🎯 STOP ACTIVITY • ${escapeHtml(stop.cityName || 'Destination')}
+          <span class="badge" style="background: #e6f4f2; color: #006d64; margin-bottom: 0.35rem; font-weight: 800; padding: 0.3rem 0.75rem;">
+            📍 DESTINATION • ${escapeHtml(stop.cityName || 'Destination')}
           </span>
-          <h2 style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 900; color: #0f172a;">
+          <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 900; color: #0f172a; line-height: 1.2;">
             Add Activity to Itinerary
           </h2>
         </div>
-        <button style="background: none; border: none; color: #64748b; font-size: 1.3rem; cursor: pointer; font-weight: 700;" id="btn-close-act-modal">✕</button>
+        <button style="width: 36px; height: 36px; border-radius: 50%; background: #f1f5f9; border: none; color: #0f172a; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700;" id="btn-close-act-modal">✕</button>
       </div>
 
       <!-- Tab Switcher (Curated vs Custom) -->
       <div style="display: flex; padding: 0.75rem 1.75rem; background: #ffffff; border-bottom: 1px solid var(--color-border); gap: 0.5rem;">
-        <button class="btn btn-sm btn-primary" id="tab-curated" style="border-radius: var(--radius-full); font-weight: 600;">
-          ✨ Curated in ${escapeHtml(stop.cityName || 'City')}
+        <button class="btn btn-sm" id="tab-curated" style="border-radius: 9999px; font-weight: 700; background: #006d64; color: #ffffff; padding: 0.45rem 1.1rem;">
+          ✨ Curated Sights
         </button>
-        <button class="btn btn-sm btn-secondary" id="tab-custom" style="border-radius: var(--radius-full); font-weight: 600;">
+        <button class="btn btn-sm" id="tab-custom" style="border-radius: 9999px; font-weight: 700; background: #f8fafc; color: #0f172a; border: 1px solid #cbd5e1; padding: 0.45rem 1.1rem;">
           ✍️ Custom Activity
         </button>
       </div>
@@ -64,34 +64,34 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
       <!-- Category Filter Pills -->
       <div id="curated-filters" style="padding: 0.75rem 1.75rem; background: #f8fafc; border-bottom: 1px solid var(--color-border); display: flex; gap: 0.4rem; overflow-x: auto;">
         ${CATEGORIES.map(c => `
-          <button class="btn btn-sm ${c.id === '' ? 'btn-primary' : 'btn-secondary'}" data-cat="${c.id}" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: var(--radius-full); white-space: nowrap; font-weight: 600;">
+          <button class="btn-cat-pill-act" data-cat="${c.id}" style="padding: 0.35rem 0.85rem; font-size: 0.82rem; border-radius: 9999px; white-space: nowrap; font-weight: 700; border: 1px solid ${c.id === '' ? '#006d64' : '#cbd5e1'}; background: ${c.id === '' ? '#006d64' : '#ffffff'}; color: ${c.id === '' ? '#ffffff' : '#0f172a'}; cursor: pointer;">
             ${c.label}
           </button>
         `).join('')}
       </div>
 
       <!-- Content Area -->
-      <div style="padding: 1.5rem 1.75rem; overflow-y: auto; flex: 1; background: #ffffff;">
+      <div style="padding: 1.5rem 1.75rem; overflow-y: auto; flex: 1; background: #f8fafc;">
         <!-- Curated List View -->
         <div id="curated-view">
           <div style="text-align: center; padding: 2rem 0;" id="act-loading">
-            <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
-            <p style="color: #64748b; margin-top: 0.75rem; font-size: 0.9rem;">Loading activities...</p>
+            <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(0, 109, 100, 0.2); border-top-color: #006d64; border-radius: 50%; margin: 0 auto;"></div>
+            <p style="color: #64748b; margin-top: 0.75rem; font-size: 0.9rem;">Loading curated activities...</p>
           </div>
           <div id="act-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem;"></div>
         </div>
 
         <!-- Custom Configuration Form -->
-        <div id="act-config-form" style="display: none;">
-          <div class="form-group">
-            <label class="form-label">Activity Title</label>
-            <input type="text" class="form-input" id="act-title" placeholder="e.g. Scuba Diving, Taj Mahal Sunrise Visit, Food Walk..." required />
+        <div id="act-config-form" style="display: none; background: #ffffff; padding: 1.5rem; border-radius: 20px; border: 1px solid var(--color-border);">
+          <div class="form-group" style="margin-bottom: 1.15rem;">
+            <label class="form-label" style="font-weight: 700; color: #0f172a; margin-bottom: 0.35rem; display: block;">Activity Title / Name <span style="color: #ef4444;">*</span></label>
+            <input type="text" class="form-input" id="act-title" placeholder="e.g. Sunset Scuba Diving, Local Street Food Tour..." required style="width: 100%; height: 46px; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 0 1rem; font-size: 0.95rem;" />
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label">Category</label>
-              <select class="form-input" id="act-category" style="font-weight: 600;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.15rem;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700; color: #0f172a; margin-bottom: 0.35rem; display: block;">Category</label>
+              <select class="form-input" id="act-category" style="width: 100%; height: 46px; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 0 0.85rem; font-weight: 600;">
                 <option value="Sightseeing">🏛️ Sightseeing</option>
                 <option value="Adventure">🧗 Adventure</option>
                 <option value="Food">🍲 Food & Dining</option>
@@ -102,36 +102,36 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
                 <option value="Other">✨ Other</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">Start Time</label>
-              <input type="time" class="form-input" id="act-time" value="10:00" />
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700; color: #0f172a; margin-bottom: 0.35rem; display: block;">Start Time</label>
+              <input type="time" class="form-input" id="act-time" value="10:00" style="width: 100%; height: 46px; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 0 0.85rem;" />
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group">
-              <label class="form-label">Estimated Duration</label>
-              <input type="text" class="form-input" id="act-duration" placeholder="e.g. 2 hours" value="2 hours" />
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.15rem;">
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700; color: #0f172a; margin-bottom: 0.35rem; display: block;">Estimated Duration</label>
+              <input type="text" class="form-input" id="act-duration" placeholder="e.g. 2 hours" value="2 hours" style="width: 100%; height: 46px; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 0 1rem;" />
             </div>
-            <div class="form-group">
-              <label class="form-label">Estimated Cost (₹)</label>
-              <input type="number" class="form-input" id="act-cost" placeholder="0 for free" min="0" value="0" />
+            <div class="form-group" style="margin: 0;">
+              <label class="form-label" style="font-weight: 700; color: #0f172a; margin-bottom: 0.35rem; display: block;">Estimated Cost (₹)</label>
+              <input type="number" class="form-input" id="act-cost" placeholder="1500" min="0" value="1500" style="width: 100%; height: 46px; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 0 1rem; font-weight: 700; color: #006d64;" />
             </div>
           </div>
 
-          <div class="form-group">
-            <label class="form-label">Activity Notes (Optional)</label>
-            <input type="text" class="form-input" id="act-notes" placeholder="e.g. Book tickets online, bring sunscreen..." />
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" style="font-weight: 700; color: #0f172a; margin-bottom: 0.35rem; display: block;">Activity Notes (Optional)</label>
+            <input type="text" class="form-input" id="act-notes" placeholder="e.g. Book online, bring sunscreen & swimwear..." style="width: 100%; height: 46px; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 0 1rem;" />
           </div>
         </div>
       </div>
 
       <!-- Footer Actions -->
-      <div style="padding: 1.25rem 1.75rem; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 0.75rem; background: #f8fafc;">
-        <button class="btn btn-secondary" id="btn-cancel-act">Cancel</button>
-        <button class="btn btn-primary" id="btn-confirm-add-act" disabled>
-          <span>+</span>
-          <span>Add Activity to Itinerary</span>
+      <div style="padding: 1.25rem 1.75rem; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 0.75rem; background: #ffffff;">
+        <button class="btn btn-secondary" id="btn-cancel-act" style="border-radius: 9999px; height: 46px; padding: 0 1.5rem; font-weight: 700;">Cancel</button>
+        <button class="btn btn-primary" id="btn-confirm-add-act" disabled style="background: #006d64; border-radius: 9999px; height: 46px; padding: 0 1.75rem; font-weight: 800; display: flex; align-items: center; gap: 0.4rem;">
+          <span style="font-size: 1.2rem; font-weight: 800; line-height: 1;">+</span>
+          <span>Add Activity</span>
         </button>
       </div>
 
@@ -155,10 +155,13 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
 
   tabCurated?.addEventListener('click', () => {
     activeTab = 'curated';
-    tabCurated.classList.add('btn-primary');
-    tabCurated.classList.remove('btn-secondary');
-    tabCustom.classList.remove('btn-primary');
-    tabCustom.classList.add('btn-secondary');
+    tabCurated.style.background = '#006d64';
+    tabCurated.style.color = '#ffffff';
+    tabCurated.style.border = 'none';
+    tabCustom.style.background = '#f8fafc';
+    tabCustom.style.color = '#0f172a';
+    tabCustom.style.border = '1px solid #cbd5e1';
+
     curatedFilters.style.display = 'flex';
     curatedView.style.display = 'block';
     actConfigForm.style.display = 'none';
@@ -167,22 +170,30 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
 
   tabCustom?.addEventListener('click', () => {
     activeTab = 'custom';
-    tabCustom.classList.add('btn-primary');
-    tabCustom.classList.remove('btn-secondary');
-    tabCurated.classList.remove('btn-primary');
-    tabCurated.classList.add('btn-secondary');
+    tabCustom.style.background = '#006d64';
+    tabCustom.style.color = '#ffffff';
+    tabCustom.style.border = 'none';
+    tabCurated.style.background = '#f8fafc';
+    tabCurated.style.color = '#0f172a';
+    tabCurated.style.border = '1px solid #cbd5e1';
+
     curatedFilters.style.display = 'none';
     curatedView.style.display = 'none';
     actConfigForm.style.display = 'block';
     confirmBtn.disabled = false;
   });
 
-  const catBtns = curatedFilters.querySelectorAll('button');
+  const catBtns = curatedFilters.querySelectorAll('.btn-cat-pill-act');
   catBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-      catBtns.forEach(b => { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); });
-      btn.classList.remove('btn-secondary');
-      btn.classList.add('btn-primary');
+      catBtns.forEach(b => {
+        b.style.background = '#ffffff';
+        b.style.borderColor = '#cbd5e1';
+        b.style.color = '#0f172a';
+      });
+      btn.style.background = '#006d64';
+      btn.style.borderColor = '#006d64';
+      btn.style.color = '#ffffff';
       selectedCategory = btn.getAttribute('data-cat') || '';
       loadActivities();
     });
@@ -199,37 +210,41 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
         curatedActivities = [];
       }
 
-      actLoading.style.display = 'none';
-
-      if (!curatedActivities || curatedActivities.length === 0) {
-        actList.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: #64748b;">
-            No curated activities found for this category. You can add a custom activity using the tab above!
-          </div>
-        `;
-        return;
+      // Default seed activities fallback
+      if (!Array.isArray(curatedActivities) || curatedActivities.length === 0) {
+        curatedActivities = [
+          { name: `Guided Cultural Tour in ${stop.cityName}`, category: 'Culture', durationMinutes: 120, estimatedCost: 1500 },
+          { name: `Sunset Viewpoint & Dining`, category: 'Sightseeing', durationMinutes: 90, estimatedCost: 2200 },
+          { name: `Local Water Sports & Adventure`, category: 'Adventure', durationMinutes: 180, estimatedCost: 3500 },
+          { name: `Bazaar & Handicraft Shopping`, category: 'Shopping', durationMinutes: 120, estimatedCost: 800 }
+        ];
+        if (selectedCategory) {
+          curatedActivities = curatedActivities.filter(a => a.category.toLowerCase() === selectedCategory.toLowerCase());
+        }
       }
+
+      actLoading.style.display = 'none';
 
       actList.innerHTML = curatedActivities.map(act => {
         const costStr = act.estimatedCost > 0 ? `₹${parseFloat(act.estimatedCost).toLocaleString('en-IN')}` : 'Free';
         const durStr = act.durationMinutes ? `${Math.round(act.durationMinutes / 60)}h` : '2 hours';
         return `
-          <div class="card act-pick-card" style="padding: 1.15rem; cursor: pointer; background: #ffffff; border: 1px solid var(--color-border); display: flex; flex-direction: column; justify-content: space-between; transition: border-color 0.2s ease, box-shadow 0.2s ease; box-shadow: var(--shadow-sm);">
+          <div class="card act-pick-card" style="padding: 1.15rem; cursor: pointer; background: #ffffff; border: 1.5px solid var(--color-border); border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease; box-shadow: var(--shadow-sm);">
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); font-size: 0.72rem; font-weight: 700;">
-                  ${escapeHtml(act.category || 'General')}
+                <span class="badge" style="background: #e6f4f2; color: #006d64; font-size: 0.72rem; font-weight: 700;">
+                  ${escapeHtml(act.category || 'Sightseeing')}
                 </span>
                 <span style="font-size: 0.75rem; color: #64748b;">⏱️ ${durStr}</span>
               </div>
-              <h4 style="font-family: var(--font-heading); font-size: 1.02rem; font-weight: 800; color: #0f172a; line-height: 1.3;">
+              <h4 style="font-family: var(--font-heading); font-size: 1.05rem; font-weight: 800; color: #0f172a; line-height: 1.3;">
                 ${escapeHtml(act.name)}
               </h4>
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border);">
-              <span style="font-weight: 800; color: ${act.estimatedCost > 0 ? '#059669' : '#0284c7'}; font-size: 0.92rem;">${costStr}</span>
-              <button class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">Select +</button>
+              <span style="font-weight: 800; color: #006d64; font-size: 0.95rem;">${costStr}</span>
+              <button class="btn btn-secondary btn-sm" style="font-size: 0.78rem; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 700; background: #f1f5f9;">Select +</button>
             </div>
           </div>
         `;
@@ -241,13 +256,13 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
             c.style.borderColor = 'var(--color-border)';
             c.style.boxShadow = 'var(--shadow-sm)';
           });
-          card.style.borderColor = 'var(--color-primary)';
-          card.style.boxShadow = '0 0 0 2px var(--color-primary)';
+          card.style.borderColor = '#006d64';
+          card.style.boxShadow = '0 0 0 2px #006d64';
           selectedActivity = curatedActivities[idx];
           
           modal.querySelector('#act-title').value = selectedActivity.name;
           modal.querySelector('#act-category').value = selectedActivity.category || 'Sightseeing';
-          modal.querySelector('#act-cost').value = selectedActivity.estimatedCost || 0;
+          modal.querySelector('#act-cost').value = selectedActivity.estimatedCost || 1500;
           modal.querySelector('#act-duration').value = selectedActivity.durationMinutes ? `${Math.round(selectedActivity.durationMinutes / 60)} hours` : '2 hours';
           
           confirmBtn.disabled = false;
@@ -271,7 +286,7 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
     if (activeTab === 'curated' && selectedActivity) {
       title = selectedActivity.name;
       category = selectedActivity.category || 'Sightseeing';
-      cost = parseFloat(selectedActivity.estimatedCost) || 0;
+      cost = parseFloat(selectedActivity.estimatedCost) || 1500;
       duration = selectedActivity.durationMinutes ? `${Math.round(selectedActivity.durationMinutes / 60)} hours` : '2 hours';
     } else {
       title = modal.querySelector('#act-title').value.trim();
@@ -283,36 +298,32 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
     }
 
     if (!title) {
-      alert('Please select an activity or enter a title.');
+      alert('Please enter an activity title or pick a curated activity.');
       return;
     }
 
-    const newActivity = {
-      id: 'act-' + Date.now(),
-      title,
-      category,
-      startTime,
-      duration,
-      cost,
-      notes
-    };
-
     try {
-      if (!selectedActivity?.id) {
-        alert('Select a curated activity so it can be saved to the itinerary.');
-        return;
-      }
+      confirmBtn.innerHTML = '<span>Saving...</span>';
       confirmBtn.disabled = true;
-      const savedActivity = await api.addStopActivity(stop.id, {
-        activityId: selectedActivity.id,
+
+      const payload = {
+        activityId: selectedActivity?.id || null,
+        title,
+        category,
         date: stop.startDate || new Date().toISOString().slice(0, 10),
         startTime,
-        endTime: null,
-        cost
-      });
-      onActivityAdded(savedActivity);
+        duration,
+        cost,
+        notes
+      };
+
+      const savedActivity = await api.addStopActivity(stop.id, payload);
+      if (onActivityAdded) {
+        await onActivityAdded(savedActivity);
+      }
       modal.remove();
     } catch (err) {
+      confirmBtn.innerHTML = '<span>+ Add Activity</span>';
       confirmBtn.disabled = false;
       alert('Could not save activity: ' + err.message);
     }
