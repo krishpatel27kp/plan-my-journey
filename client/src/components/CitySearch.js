@@ -126,12 +126,13 @@ export function renderCitySearch() {
     `;
 
     try {
+      const API_BASE = window.__API_BASE_URL__ || (window.location.port === '5173' ? 'http://localhost:5000/api' : '/api');
       const params = new URLSearchParams();
       if (searchTerm.trim()) params.set('search', searchTerm.trim());
       if (selectedRegion) params.set('region', selectedRegion);
 
       const queryStr = params.toString() ? `?${params.toString()}` : '';
-      const res = await fetch(`/api/cities${queryStr}`);
+      const res = await fetch(`${API_BASE}/cities${queryStr}`);
       const cities = await res.json();
 
       if (!res.ok) {

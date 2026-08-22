@@ -96,7 +96,8 @@ export function renderCityActivitiesModal({ city, onClose }) {
     `;
 
     try {
-      let url = `/api/cities/${city.id}/activities`;
+      const API_BASE = window.__API_BASE_URL__ || (window.location.port === '5173' ? 'http://localhost:5000/api' : '/api');
+      let url = `${API_BASE}/cities/${city.id}/activities`;
       if (selectedCategory) {
         url += `?category=${encodeURIComponent(selectedCategory)}`;
       }
