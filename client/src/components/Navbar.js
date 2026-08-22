@@ -17,16 +17,21 @@ export function renderNavbar({ user, activeTab, onTabChange, onLogout, onOpenAut
       <span>Plan My Journey</span>
     </div>
 
-    ${user ? `
-      <nav class="nav-links">
+    <nav class="nav-links">
+      <button class="nav-btn ${activeTab === 'explore' ? 'active' : ''}" id="nav-tab-explore">
+        Explore Cities
+      </button>
+      ${user ? `
         <button class="nav-btn ${activeTab === 'dashboard' ? 'active' : ''}" id="nav-tab-dashboard">
           Trips Dashboard
         </button>
         <button class="nav-btn ${activeTab === 'profile' ? 'active' : ''}" id="nav-tab-profile">
           Profile & Settings
         </button>
-      </nav>
+      ` : ''}
+    </nav>
 
+    ${user ? `
       <div style="display: flex; align-items: center; gap: 1rem;">
         <div style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;" id="nav-user-badge">
           <div class="avatar">${avatarHtml}</div>
@@ -49,7 +54,8 @@ export function renderNavbar({ user, activeTab, onTabChange, onLogout, onOpenAut
   `;
 
   // Event Listeners
-  nav.querySelector('#nav-brand')?.addEventListener('click', () => onTabChange('dashboard'));
+  nav.querySelector('#nav-brand')?.addEventListener('click', () => onTabChange(user ? 'dashboard' : 'explore'));
+  nav.querySelector('#nav-tab-explore')?.addEventListener('click', () => onTabChange('explore'));
   nav.querySelector('#nav-tab-dashboard')?.addEventListener('click', () => onTabChange('dashboard'));
   nav.querySelector('#nav-tab-profile')?.addEventListener('click', () => onTabChange('profile'));
   nav.querySelector('#nav-user-badge')?.addEventListener('click', () => onTabChange('profile'));
