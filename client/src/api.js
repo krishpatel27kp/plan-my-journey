@@ -27,8 +27,8 @@ async function request(endpoint, options = {}) {
   try {
     const res = await fetch(url, config);
 
-    // Handle 401 Unauthorized (Expired or invalid token)
-    if (res.status === 401 && !options.skipAuthRedirect) {
+    // Handle 401 Unauthorized only if a token was sent and rejected (expired)
+    if (res.status === 401 && token && !options.skipAuthRedirect) {
       clearSession();
       window.dispatchEvent(new CustomEvent('auth:unauthorized', {
         detail: { message: 'Your session has expired. Please log in again.' }

@@ -3,8 +3,9 @@
  * Features 'Upcoming / Past' tabs, rich trip cards with Planning/Confirmed badges, and 'Plan a New Journey' card.
  */
 import { api } from '../api.js';
+import { isAuthenticated } from '../auth.js';
 
-export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
+export function renderMyTrips({ onOpenTrip, onPlanNewTrip, onOpenAuth }) {
   const container = document.createElement('div');
   container.className = 'main-container animate-fade-in';
   container.style.maxWidth = '680px';
@@ -19,6 +20,38 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
   async function loadTrips() {
     isLoading = true;
     render();
+
+    if (!isAuthenticated()) {
+      trips = [
+        {
+          id: 'trip-goa-escape',
+          title: 'Goa Escape',
+          startDate: '2026-09-10',
+          endDate: '2026-09-15',
+          status: 'Planning',
+          budgetSpent: '₹45k',
+          budgetTotal: '₹60k',
+          destinationsCount: 3,
+          imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
+          isPast: false
+        },
+        {
+          id: 'trip-himalayan-trek',
+          title: 'Himalayan Trek',
+          startDate: '2026-10-20',
+          endDate: '2026-10-25',
+          status: 'Confirmed',
+          budgetSpent: '₹25k',
+          budgetTotal: '₹30k',
+          destinationsCount: 2,
+          imageUrl: 'https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=800&q=80',
+          isPast: false
+        }
+      ];
+      isLoading = false;
+      render();
+      return;
+    }
 
     try {
       const res = await api.getTrips();
@@ -246,7 +279,13 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
       render();
     });
 
-    container.querySelector('#btn-plan-new-card')?.addEventListener('click', onPlanNewTrip);
+    container.querySelector('#btn-plan-new-card')?.addEventListener('click', () => {
+      if (!isAuthenticated() && onOpenAuth) {
+        onOpenAuth();
+        return;
+      }
+      onPlanNewTrip();
+    });
 
     container.querySelectorAll('.trip-item-card').forEach(card => {
       card.addEventListener('click', () => {

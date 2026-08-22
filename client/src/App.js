@@ -54,14 +54,16 @@ export function createApp() {
 
   // Listen for 401 Unauthorized events from api.js
   window.addEventListener('auth:unauthorized', (event) => {
-    currentUser = null;
-    isAuthModalOpen = true;
-    authMode = 'login';
-    notification = {
-      type: 'danger',
-      message: event.detail?.message || 'Session expired. Please log in.'
-    };
-    render();
+    if (currentUser) {
+      currentUser = null;
+      isAuthModalOpen = true;
+      authMode = 'login';
+      notification = {
+        type: 'danger',
+        message: event.detail?.message || 'Session expired. Please log in.'
+      };
+      render();
+    }
   });
 
   // Verify and refresh user profile if token exists
@@ -100,115 +102,112 @@ export function createApp() {
     activeTripId = tripId;
     activeTripData = tripData;
     activeTab = 'itinerary';
-    shareToken = null;
     render();
-  }
-
-  function handleLogout() {
-    clearSession();
-    currentUser = null;
-    isAuthModalOpen = false;
-    authMode = 'login';
-    activeTab = 'dashboard';
-    activeTripId = null;
-    activeTripData = null;
-    render();
-  }
-
-  function handleAuthSuccess(user) {
-    currentUser = user;
-    isAuthModalOpen = false;
-    if (pendingPostAuth) {
-      const cb = pendingPostAuth;
-      pendingPostAuth = null;
-      render();
-      cb();
-    } else {
-      activeTab = 'dashboard';
-      render();
-    }
   }
 
   function render() {
     root.innerHTML = '';
 
-    // 1. Render Top App Bar (Navbar)
-    const nav = renderNavbar({
-      user: currentUser,
-      activeTab,
-      onTabChange: handleTabChange,
-      onLogout: handleLogout,
-      onOpenAuth: () => {
-        isAuthModalOpen = true;
-        authMode = 'login';
-        pendingPostAuth = null;
-        render();
-      }
-    });
-    root.appendChild(nav);
-
-    // Global Notification Banner
-    if (notification) {
-      const alertBox = document.createElement('div');
-      alertBox.className = `alert alert-${notification.type} animate-fade-in`;
-      alertBox.style.maxWidth = '680px';
-      alertBox.style.margin = '0.5rem auto';
-      alertBox.style.padding = '0.75rem 1rem';
-      alertBox.style.borderRadius = '12px';
-      alertBox.style.background = '#fef2f2';
-      alertBox.style.border = '1px solid #fecaca';
-      alertBox.style.color = '#ef4444';
-      alertBox.style.display = 'flex';
-      alertBox.style.alignItems = 'center';
-      alertBox.innerHTML = `
-        <span style="margin-right: 0.5rem;">⚠️</span>
-        <span style="flex: 1; font-size: 0.88rem; font-weight: 600;">${notification.message}</span>
-        <button style="background: none; border: none; color: inherit; cursor: pointer; font-size: 1.2rem;" id="close-notif">&times;</button>
-      `;
-      alertBox.querySelector('#close-notif')?.addEventListener('click', () => {
-        notification = null;
-        alertBox.remove();
-      });
-      root.appendChild(alertBox);
-    }
-
-    // 2. Render Main Content View
-    const mainContent = document.createElement('main');
-    mainContent.style.flex = '1';
-
-    if (shareToken) {
-      mainContent.appendChild(renderPublicShareView({
-        shareToken,
-        onBack: () => {
-          window.history.pushState({}, '', '/');
+    // Handle Public Share view
+    if (shareToken || activeTab === 'share') {
+      root.appendChild(renderPublicShareView({
+        shareToken: shareToken || 'demo',
+        onCopySuccess: (newTripId) => {
+          activeTripId = newTripId;
           shareToken = null;
-          activeTab = 'dashboard';
+          activeTab = 'itinerary';
+          notification = { type: 'success', message: 'Trip successfully copied to your itineraries!' };
           render();
         },
-        onOpenAuth: (postAuthCallback) => {
-          pendingPostAuth = postAuthCallback;
+        onRequestAuth: () => {
           isAuthModalOpen = true;
           authMode = 'login';
           render();
-        },
-        onCopySuccess: (newTripId) => {
-          shareToken = null;
-          activeTripId = newTripId;
-          activeTab = 'itinerary';
-          window.history.pushState({}, '', '/');
-          render();
         }
       }));
-    } else if (activeTab === 'explore') {
-      mainContent.appendChild(renderCitySearch());
+      return;
+    }
+
+    // 1. Render Top Header
+    const navbar = renderNavbar({
+      user: currentUser,
+      activeTab,
+      onNavigate: handleTabChange,
+      onOpenLogin: () => {
+        isAuthModalOpen = true;
+        authMode = 'login';
+        render();
+      },
+      onOpenSignup: () => {
+        isAuthModalOpen = true;
+        authMode = 'register';
+        render();
+      },
+      onLogout: () => {
+        clearSession();
+        currentUser = null;
+        activeTab = 'dashboard';
+        notification = { type: 'info', message: 'You have been logged out.' };
+        render();
+      }
+    });
+    root.appendChild(navbar);
+
+    // Global Notification Banner
+    if (notification) {
+      const banner = document.createElement('div');
+      const bgMap = {
+        success: 'rgba(0, 109, 100, 0.95)',
+        danger: '#ef4444',
+        info: '#0f172a'
+      };
+      banner.style.position = 'fixed';
+      banner.style.top = '1rem';
+      banner.style.left = '50%';
+      banner.style.transform = 'translateX(-50%)';
+      banner.style.zIndex = '2000';
+      banner.style.background = bgMap[notification.type] || '#006d64';
+      banner.style.color = '#ffffff';
+      banner.style.padding = '0.75rem 1.5rem';
+      banner.style.borderRadius = '9999px';
+      banner.style.boxShadow = '0 10px 25px rgba(0,0,0,0.2)';
+      banner.style.fontWeight = '600';
+      banner.style.fontSize = '0.9rem';
+      banner.className = 'animate-fade-in';
+      banner.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span>${notification.message}</span>
+          <button style="background: none; border: none; color: #ffffff; cursor: pointer; font-size: 1.1rem; margin-left: 0.5rem;" id="btn-close-banner">✕</button>
+        </div>
+      `;
+      banner.querySelector('#btn-close-banner')?.addEventListener('click', () => banner.remove());
+      setTimeout(() => { banner.remove(); }, 4000);
+      root.appendChild(banner);
+      notification = null;
+    }
+
+    // 2. Render Main Content Container based on Active Tab
+    const mainContent = document.createElement('main');
+    mainContent.id = 'main-content-view';
+
+    if (activeTab === 'explore') {
+      mainContent.appendChild(renderCitySearch({
+        onSelectCity: (city) => {
+          // Open city in modal or add stop
+        }
+      }));
     } else if (activeTab === 'itinerary' || activeTab === 'timeline') {
+      const fallbackTripId = activeTripId || 'default-trip';
       mainContent.appendChild(renderItineraryBuilder({
-        tripId: activeTripId || 'trip-goa-escape',
+        tripId: fallbackTripId,
         initialTrip: activeTripData,
         onBack: () => {
           activeTab = 'dashboard';
-          activeTripId = null;
-          activeTripData = null;
+          render();
+        },
+        onRequestAuth: () => {
+          isAuthModalOpen = true;
+          authMode = 'login';
           render();
         }
       }));
@@ -218,6 +217,11 @@ export function createApp() {
         onPlanNewTrip: () => {
           activeTab = 'dashboard';
           shouldOpenCreateModal = true;
+          render();
+        },
+        onOpenAuth: () => {
+          isAuthModalOpen = true;
+          authMode = 'login';
           render();
         }
       }));
@@ -237,7 +241,12 @@ export function createApp() {
         user: currentUser || { name: 'Alex', email: 'alex@example.com' },
         onNavigate: handleTabChange,
         onOpenTrip: handleOpenTrip,
-        openCreateOnMount: createOnMount
+        openCreateOnMount: createOnMount,
+        onOpenAuth: () => {
+          isAuthModalOpen = true;
+          authMode = 'login';
+          render();
+        }
       }));
     }
 
@@ -268,23 +277,33 @@ export function createApp() {
       </button>
     `;
 
-    bottomDock.querySelectorAll('.dock-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const tab = item.getAttribute('data-tab');
+    bottomDock.querySelectorAll('.dock-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.getAttribute('data-tab');
         handleTabChange(tab);
       });
     });
 
     root.appendChild(bottomDock);
 
-    // 4. Render Auth Modal if open
+    // 4. Modal Overlays
     if (isAuthModalOpen) {
       const authModal = renderAuthView({
         initialMode: authMode,
-        onSuccess: handleAuthSuccess,
+        onSuccess: (user) => {
+          currentUser = user;
+          isAuthModalOpen = false;
+          notification = { type: 'success', message: `Welcome, ${user.name}!` };
+          if (pendingPostAuth) {
+            const nextAction = pendingPostAuth;
+            pendingPostAuth = null;
+            nextAction();
+          } else {
+            render();
+          }
+        },
         onClose: () => {
           isAuthModalOpen = false;
-          pendingPostAuth = null;
           render();
         }
       });
