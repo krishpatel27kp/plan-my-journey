@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS cities (
     cost_index INT,
     popularity INT,
     image_url TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_cities_name_country UNIQUE (name, country)
 );
 
 CREATE TABLE IF NOT EXISTS activities (
@@ -39,7 +40,8 @@ CREATE TABLE IF NOT EXISTS activities (
     category VARCHAR(100),
     duration_minutes INT,
     estimated_cost NUMERIC(10, 2),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_activities_city_name UNIQUE (city_id, name)
 );
 
 -- Note: shares references trips(id), which is owned by Pillar B.
