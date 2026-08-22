@@ -274,6 +274,15 @@ try {
               const tripId = parts[3];
               const crypto = require('crypto');
               const shareToken = crypto.randomBytes(4).toString('hex');
+              const db = require('./db');
+              try {
+                await db.query(
+                  'INSERT INTO shares (id, trip_id, share_token) VALUES ($1, $2, $3)',
+                  [crypto.randomUUID(), tripId, shareToken]
+                );
+              } catch (e) {
+                // Ignore if mock trip ID or duplicate
+              }
               const baseUrl = (process.env.PUBLIC_APP_BASE_URL || 'http://localhost:5173').replace(/\/$/, '');
               return res.status(200).json({
                 shareToken,
