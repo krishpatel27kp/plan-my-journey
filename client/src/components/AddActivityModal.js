@@ -196,11 +196,7 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
       if (stop.cityId) {
         curatedActivities = await api.getCityActivities(stop.cityId, selectedCategory);
       } else {
-        curatedActivities = [
-          { name: 'City Landmark Exploration', category: 'Sightseeing', durationMinutes: 120, estimatedCost: 500 },
-          { name: 'Traditional Culinary Food Tour', category: 'Food', durationMinutes: 90, estimatedCost: 800 },
-          { name: 'Sunset Viewpoint & Photography', category: 'Relaxing', durationMinutes: 60, estimatedCost: 0 }
-        ];
+        curatedActivities = [];
       }
 
       actLoading.style.display = 'none';
@@ -264,7 +260,7 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
     }
   }
 
-  confirmBtn?.addEventListener('click', () => {
+  confirmBtn?.addEventListener('click', async () => {
     let title = '';
     let category = 'Sightseeing';
     let startTime = '10:00';
@@ -301,8 +297,25 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
       notes
     };
 
-    onActivityAdded(newActivity);
-    modal.remove();
+    try {
+      if (!selectedActivity?.id) {
+        alert('Select a curated activity so it can be saved to the itinerary.');
+        return;
+      }
+      confirmBtn.disabled = true;
+      const savedActivity = await api.addStopActivity(stop.id, {
+        activityId: selectedActivity.id,
+        date: stop.startDate || new Date().toISOString().slice(0, 10),
+        startTime,
+        endTime: null,
+        cost
+      });
+      onActivityAdded(savedActivity);
+      modal.remove();
+    } catch (err) {
+      confirmBtn.disabled = false;
+      alert('Could not save activity: ' + err.message);
+    }
   });
 
   loadActivities();

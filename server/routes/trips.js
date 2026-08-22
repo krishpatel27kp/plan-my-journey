@@ -266,6 +266,17 @@ router.post('/:tripId/stops', async (req, res, next) => {
   }
 });
 
+router.delete('/stops/:stopId', async (req, res, next) => {
+  try {
+    const result = await db.query(`
+      DELETE FROM trip_stops WHERE id = $1 AND trip_id IN
+      (SELECT id FROM trips WHERE user_id = $2) RETURNING id
+    `, [req.params.stopId, req.user.userId]);
+    if (!result.rows.length) return sendNotFoundError(res, 'Stop not found');
+    return res.status(200).json({ id: req.params.stopId, deleted: true });
+  } catch (err) { next(err); }
+});
+
 // POST /api/stops/:stopId/activities
 router.post('/stops/:stopId/activities', async (req, res, next) => {
   try {

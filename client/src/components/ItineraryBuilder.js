@@ -15,6 +15,9 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
   let trip = initialTrip || null;
   let activeViewMode = 'itinerary'; // 'itinerary' | 'timeline' | 'budget'
   let isLoading = !trip;
+  let isBudgetLoading = true;
+  let budget = null;
+  let budgetError = null;
   let activeModal = null;
 
   async function fetchTripDetails() {
@@ -25,101 +28,40 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     try {
       const data = await api.getTripById(tripId);
       trip = data;
-      // Initialize stops array if empty or fallback demo structure
-      if (!trip.stops || trip.stops.length === 0) {
-        trip.stops = getSampleStopsForDemo(trip);
-      }
       isLoading = false;
       render();
-    } catch (err) {
-      console.warn('Trip fetch warning:', err.message);
-      // Fallback for demo so user always sees a rich itinerary
-      if (!trip) {
-        trip = {
-          id: tripId,
-          title: 'Goa Escape',
-          startDate: '2026-09-10',
-          endDate: '2026-09-15',
-          budget: 50000,
-          currency: 'INR',
-          description: 'A breathtaking multi-city journey covering historical monuments, cultural heritage, and coastal relaxation.',
-          stops: getSampleStopsForDemo({ title: 'Goa Escape' })
-        };
+      isBudgetLoading = true;
+      budgetError = null;
+      try {
+        budget = await api.getTripBudget(tripId);
+      } catch (err) {
+        budgetError = err.message;
+      } finally {
+        isBudgetLoading = false;
+        render();
       }
+    } catch (err) {
+      console.warn('Trip fetch error:', err.message);
+      budgetError = err.message;
       isLoading = false;
       render();
     }
   }
 
-  function getSampleStopsForDemo(t) {
-    return [
-      {
-        id: 'stop-delhi',
-        cityId: '1',
-        cityName: 'Delhi',
-        stopOrder: 1,
-        startDate: '2026-09-10',
-        endDate: '2026-09-11',
-        notes: 'Explore old architectural heritage and culinary spots',
-        activities: [
-          { id: 'act-1', title: 'Red Fort Historical Tour', category: 'Sightseeing', startTime: '09:00', duration: '2 hours', cost: 500 },
-          { id: 'act-2', title: 'Old Delhi Local Food Walk', category: 'Food', startTime: '13:00', duration: '2 hours', cost: 800 }
-        ]
-      },
-      {
-        id: 'stop-jaipur',
-        cityId: '2',
-        cityName: 'Jaipur',
-        stopOrder: 2,
-        startDate: '2026-09-12',
-        endDate: '2026-09-13',
-        notes: 'Pink City royal palaces and forts',
-        activities: [
-          { id: 'act-3', title: 'Amber Fort Guided Exploration', category: 'Sightseeing', startTime: '10:00', duration: '3 hours', cost: 1200 },
-          { id: 'act-4', title: 'City Palace & Jantar Mantar', category: 'Culture', startTime: '14:30', duration: '2.5 hours', cost: 500 }
-        ]
-      },
-      {
-        id: 'stop-goa',
-        cityId: '3',
-        cityName: 'Goa',
-        stopOrder: 3,
-        startDate: '2026-09-14',
-        endDate: '2026-09-15',
-        notes: 'Beach resort, coastal water sports and sunset cruise',
-        activities: [
-          { id: 'act-5', title: 'Baga Beach Relaxation & Shacks', category: 'Relaxing', startTime: '09:00', duration: '3 hours', cost: 0 },
-          { id: 'act-6', title: 'Grand Island Scuba Diving', category: 'Adventure', startTime: '14:00', duration: '3 hours', cost: 2500 }
-        ]
-      }
-    ];
-  }
-
   function calculateFinancials() {
-    let activityCost = 0;
-    const stops = trip?.stops || [];
-    stops.forEach(stop => {
-      (stop.activities || []).forEach(act => {
-        activityCost += parseFloat(act.cost) || 0;
-      });
-    });
-
-    const totalBudget = parseFloat(trip?.budget) || 50000;
-    const transportCost = Math.round(totalBudget * 0.35);
-    const accommodationCost = Math.round(totalBudget * 0.40);
-    const totalSpent = activityCost + transportCost + accommodationCost;
-    const remaining = totalBudget - totalSpent;
-    const percentUsed = Math.min(Math.round((totalSpent / totalBudget) * 100), 100);
+    const totalBudget = Number(budget?.budget ?? trip?.budget) || 0;
+    const totalSpent = Number(budget?.totalSpent) || 0;
+    const remaining = Number(budget?.remaining ?? totalBudget - totalSpent);
+    const percentUsed = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
     return {
       totalBudget,
       totalSpent,
       remaining,
       percentUsed,
-      activityCost,
-      transportCost,
-      accommodationCost,
-      isOverBudget: totalSpent > totalBudget
+      byCategory: budget?.byCategory || {},
+      overBudgetDays: budget?.overBudgetDays || [],
+      isOverBudget: remaining < 0 || (budget?.overBudgetDays || []).length > 0
     };
   }
 
@@ -131,6 +73,12 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
           <p style="color: #64748b; margin-top: 1rem; font-size: 1.05rem;">Loading Itinerary...</p>
         </div>
       `;
+      return;
+    }
+
+    if (!trip) {
+      container.innerHTML = `<div class="empty-state" style="margin-top:4rem;"><h3>Unable to load this trip</h3><p class="empty-state-desc">${escapeHtml(budgetError || 'The trip could not be loaded from the server.')}</p><button class="btn btn-secondary" id="btn-back-to-trips">Back to Dashboard</button></div>`;
+      container.querySelector('#btn-back-to-trips')?.addEventListener('click', onBack);
       return;
     }
 
@@ -192,6 +140,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
           💰 Budget (${financials.percentUsed}%)
         </button>
       </div>
+      ${financials.isOverBudget ? `<div class="alert alert-danger animate-fade-in" style="margin-bottom:1.5rem;"><strong>Budget warning:</strong> ${financials.remaining < 0 ? 'This trip is over budget.' : `Daily spending exceeds the target on ${financials.overBudgetDays.join(', ')}.`}</div>` : ''}
 
       <!-- Main Canvas Layout -->
       ${activeViewMode === 'itinerary' ? renderItineraryView(stops, financials) : ''}
@@ -232,24 +181,20 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     });
 
     container.querySelectorAll('.btn-delete-stop').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const stopId = btn.getAttribute('data-stop-id');
         if (confirm('Are you sure you want to remove this city and all its activities?')) {
-          trip.stops = trip.stops.filter(s => s.id !== stopId);
-          render();
+          await api.deleteStop(stopId);
+          await fetchTripDetails();
         }
       });
     });
 
     container.querySelectorAll('.btn-delete-act').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const stopId = btn.getAttribute('data-stop-id');
+      btn.addEventListener('click', async () => {
         const actId = btn.getAttribute('data-act-id');
-        const stop = trip.stops.find(s => s.id === stopId);
-        if (stop) {
-          stop.activities = (stop.activities || []).filter(a => a.id !== actId);
-          render();
-        }
+        await api.deleteItineraryActivity(actId);
+        await fetchTripDetails();
       });
     });
   }
@@ -376,7 +321,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
 
             <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #64748b;">
               <span>Remaining: <strong style="color: ${financials.remaining < 0 ? '#ef4444' : '#059669'};">₹${Math.max(0, financials.remaining).toLocaleString('en-IN')}</strong></span>
-              <span>Activities: <strong style="color: #0f172a;">₹${financials.activityCost.toLocaleString('en-IN')}</strong></span>
+              <span>Activities: <strong style="color: #0f172a;">₹${Number(financials.byCategory.activities || 0).toLocaleString('en-IN')}</strong></span>
             </div>
 
             ${financials.isOverBudget ? `
@@ -414,6 +359,9 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
   }
 
   function renderTimelineView(stops, financials) {
+    if (!stops.length) {
+      return `<div class="empty-state animate-fade-in"><div class="empty-state-icon">🗺️</div><h3>No stops to timeline yet</h3><p class="empty-state-desc">Add a destination to see the chronological route timeline.</p><button class="btn btn-primary" id="btn-add-stop-empty">+ Add First City</button></div>`;
+    }
     return `
       <div class="card animate-fade-in" style="padding: 2rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
         <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem;">
@@ -477,6 +425,12 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
   }
 
   function renderBudgetView(stops, financials) {
+    if (isBudgetLoading) {
+      return `<div style="text-align:center;padding:5rem 0;"><div class="spinner" style="width:44px;height:44px;border:3px solid rgba(37,99,235,.2);border-top-color:var(--color-primary);border-radius:50%;margin:0 auto;"></div><p style="color:#64748b;margin-top:1rem;">Loading budget...</p></div>`;
+    }
+    if (budgetError && !budget) {
+      return `<div class="empty-state"><h3>Budget unavailable</h3><p class="empty-state-desc">${escapeHtml(budgetError)}</p></div>`;
+    }
     return `
       <div class="card animate-fade-in" style="padding: 2rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
         <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem;">
@@ -527,7 +481,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
               <div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.35rem; color: #0f172a;">
                   <span>🏨 Accommodation (Est. 40%)</span>
-                  <strong>₹${financials.accommodationCost.toLocaleString('en-IN')}</strong>
+                  <strong>₹${Number(financials.byCategory.accommodation || 0).toLocaleString('en-IN')}</strong>
                 </div>
                 <div style="height: 6px; background: #e2e8f0; border-radius: var(--radius-full);">
                   <div style="width: 40%; height: 100%; background: #6366f1; border-radius: var(--radius-full);"></div>
@@ -537,7 +491,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
               <div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.35rem; color: #0f172a;">
                   <span>🚆 Transport & Flights (Est. 35%)</span>
-                  <strong>₹${financials.transportCost.toLocaleString('en-IN')}</strong>
+                  <strong>₹${Number(financials.byCategory.transport || 0).toLocaleString('en-IN')}</strong>
                 </div>
                 <div style="height: 6px; background: #e2e8f0; border-radius: var(--radius-full);">
                   <div style="width: 35%; height: 100%; background: #0ea5e9; border-radius: var(--radius-full);"></div>
@@ -547,10 +501,10 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
               <div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.35rem; color: #0f172a;">
                   <span>🎯 Planned Activities</span>
-                  <strong>₹${financials.activityCost.toLocaleString('en-IN')}</strong>
+                  <strong>₹${Number(financials.byCategory.activities || 0).toLocaleString('en-IN')}</strong>
                 </div>
                 <div style="height: 6px; background: #e2e8f0; border-radius: var(--radius-full);">
-                  <div style="width: ${Math.min(Math.round((financials.activityCost / financials.totalBudget) * 100), 100)}%; height: 100%; background: #10b981; border-radius: var(--radius-full);"></div>
+                  <div style="width: ${financials.totalBudget > 0 ? Math.min(Math.round((financials.byCategory.activities / financials.totalBudget) * 100), 100) : 0}%; height: 100%; background: #10b981; border-radius: var(--radius-full);"></div>
                 </div>
               </div>
             </div>
@@ -601,9 +555,8 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     activeModal = renderAddCityModal({
       tripId,
       currentStopsCount: trip.stops?.length || 0,
-      onCityAdded: (newStop) => {
-        trip.stops = [...(trip.stops || []), newStop];
-        render();
+      onCityAdded: async () => {
+        await fetchTripDetails();
       },
       onClose: () => {
         if (activeModal) { activeModal.remove(); activeModal = null; }
@@ -616,9 +569,8 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     if (activeModal) activeModal.remove();
     activeModal = renderAddActivityModal({
       stop,
-      onActivityAdded: (newAct) => {
-        stop.activities = [...(stop.activities || []), newAct];
-        render();
+      onActivityAdded: async () => {
+        await fetchTripDetails();
       },
       onClose: () => {
         if (activeModal) { activeModal.remove(); activeModal = null; }

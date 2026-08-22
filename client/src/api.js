@@ -69,6 +69,11 @@ export const api = {
 
   // Stops & Activities (Pillar B)
   addStop: (tripId, body) => request(`/trips/${tripId}/stops`, { method: 'POST', body: JSON.stringify(body) }),
+  deleteStop: (stopId) => request(`/stops/${stopId}`, { method: 'DELETE' }),
+  addStopActivity: (stopId, body) => request(`/stops/${stopId}/activities`, { method: 'POST', body: JSON.stringify(body) }),
+  reorderStops: (tripId, stopIds) => request(`/trips/${tripId}/stops/reorder`, { method: 'PUT', body: JSON.stringify({ stopIds }) }),
+  deleteItineraryActivity: (id) => request(`/itinerary-activities/${id}`, { method: 'DELETE' }),
+  getTripBudget: (tripId) => request(`/trips/${tripId}/budget`),
 
   // Discovery (Pillar C contract)
   getCities: (query = '', region = '') => {
