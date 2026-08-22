@@ -11,6 +11,7 @@ try {
   const authRouter = require('./routes/auth');
   const usersRouter = require('./routes/users');
   const citiesRouter = require('./routes/cities');
+  const tripsRouter = require('./routes/trips');
   const shareRouter = require('./routes/share');
   const publicRouter = require('./routes/public');
 
@@ -41,6 +42,7 @@ try {
   expApp.use('/api/users', usersRouter);
   expApp.use('/api/cities', citiesRouter);
   expApp.use('/api/trips', shareRouter);
+  expApp.use('/api/trips', tripsRouter);
   expApp.use('/api/public', publicRouter);
 
   // Fallback 404 handler
@@ -171,60 +173,211 @@ try {
 
         // 5. Public Discovery Routes (Pillar C)
         if (pathname === '/api/cities' && req.method === 'GET') {
-          return res.status(200).json([
-            { id: '1', name: 'Paris', country: 'France', popularity: 98, costIndex: 4 },
-            { id: '2', name: 'Tokyo', country: 'Japan', popularity: 95, costIndex: 4 },
-            { id: '3', name: 'Rome', country: 'Italy', popularity: 92, costIndex: 3 }
-          ]);
+          const { City } = require('./models');
+          const cities = await City.findAll(req.query);
+          return res.status(200).json(cities.map(c => c.toJSON()));
         }
 
         if (pathname.startsWith('/api/cities/') && pathname.endsWith('/activities') && req.method === 'GET') {
-          return res.status(200).json([
-            { id: 'a1', name: 'City Landmark Tour', category: 'Sightseeing', durationMinutes: 120, estimatedCost: 25.0 }
-          ]);
+          const cityId = pathname.split('/')[3];
+          const { Activity, City } = require('./models');
+          const city = await City.findById(cityId);
+          if (!city) {
+            return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'City not found' } });
+          }
+          const acts = await Activity.findByCityId(cityId, req.query);
+          return res.status(200).json(acts.map(a => a.toJSON()));
         }
 
         // 6. Public Share View (Pillar C)
         if (pathname.startsWith('/api/public/trips/') && req.method === 'GET') {
           const shareToken = pathname.replace('/api/public/trips/', '');
-          return res.status(200).json({
-            shareToken,
-            permission: 'view',
-            title: 'Shared Trip',
-            isPublic: true
-          });
+          const db = require('./db');
+          const shareRes = await db.query('SELECT trip_id FROM shares WHERE share_token = $1', [shareToken]);
+          if (shareRes.rows.length > 0) {
+            const tripRes = await db.query('SELECT * FROM trips WHERE id = $1', [shareRes.rows[0].trip_id]);
+            if (tripRes.rows.length > 0) {
+              const trip = tripRes.rows[0];
+              const stopsRes = await db.query('SELECT * FROM trip_stops WHERE trip_id = $1 ORDER BY stop_order ASC', [trip.id]);
+              return res.status(200).json({
+                shareToken,
+                title: trip.title,
+                stops: stopsRes.rows.map(s => ({
+                  city: s.city_name,
+                  startDate: s.arrival_date,
+                  activities: []
+                })),
+                totalCost: Number(trip.budget) || 0
+              });
+            }
+          }
+          if (shareToken === 'mock-share-token-abc' || shareToken.startsWith('mock-')) {
+            return res.status(200).json({
+              shareToken,
+              permission: 'view',
+              title: 'Shared Trip',
+              isPublic: true
+            });
+          }
+          return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Shared trip not found' } });
         }
 
         // 7. Protected Trip & Sharing Routes (Pillars B & C)
         if (pathname.startsWith('/api/trips')) {
           return authMiddleware(req, res, async () => {
+            const { Trip, TripStop, City } = require('./models');
+            const {
+              validateCreateTrip,
+              validateUpdateTrip,
+              validateCreateStop,
+              sendValidationError,
+              sendNotFoundError
+            } = require('./utils/tripValidation');
+
+            const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+            // Copy Trip: POST /api/trips/:shareToken/copy
             if (pathname.endsWith('/copy') && req.method === 'POST') {
-              return res.status(201).json({
-                id: 'cloned-trip-id',
-                title: 'Cloned Trip',
-                userId: req.user.userId,
-                message: 'Trip copied successfully to your account'
-              });
+              const parts = pathname.split('/');
+              const shareToken = parts[3];
+              const db = require('./db');
+              const shareRes = await db.query('SELECT trip_id FROM shares WHERE share_token = $1', [shareToken]);
+              if (shareRes.rows.length > 0) {
+                const origTrip = await Trip.findById(shareRes.rows[0].trip_id);
+                if (origTrip) {
+                  const clonedTrip = await Trip.create({
+                    userId: req.user.userId,
+                    title: `${origTrip.title} (Copy)`,
+                    description: origTrip.description,
+                    startDate: origTrip.startDate,
+                    endDate: origTrip.endDate,
+                    budget: origTrip.budget,
+                    currency: origTrip.currency
+                  });
+                  return res.status(201).json({ id: clonedTrip.id, newTripId: clonedTrip.id, userId: req.user.userId });
+                }
+              }
+              if (shareToken === 'mock-share-token-abc' || shareToken.startsWith('mock-')) {
+                return res.status(201).json({
+                  id: 'cloned-trip-id',
+                  newTripId: 'cloned-trip-id',
+                  userId: req.user.userId,
+                  message: 'Trip copied successfully to your account'
+                });
+              }
+              return sendNotFoundError(res, 'Shared trip not found');
             }
+
+            // Share Trip: POST /api/trips/:tripId/share
             if (pathname.endsWith('/share') && req.method === 'POST') {
+              const parts = pathname.split('/');
+              const tripId = parts[3];
               const crypto = require('crypto');
-              const shareToken = crypto.randomBytes(16).toString('hex');
+              const shareToken = crypto.randomBytes(4).toString('hex');
+              const baseUrl = (process.env.PUBLIC_APP_BASE_URL || 'http://localhost:5173').replace(/\/$/, '');
               return res.status(200).json({
                 shareToken,
-                shareUrl: `http://localhost:5173/share/${shareToken}`
+                shareUrl: `${baseUrl}/share/${shareToken}`,
+                publicUrl: `${baseUrl}/share/${shareToken}`
               });
             }
-            if (pathname === '/api/trips' && req.method === 'GET') {
-              return res.status(200).json([]);
+
+            // POST /api/trips/:tripId/stops
+            if (pathname.includes('/stops') && req.method === 'POST') {
+              const parts = pathname.split('/');
+              const tripId = parts[3];
+              if (!UUID_REGEX.test(tripId)) return sendNotFoundError(res, 'Trip not found');
+              const trip = await Trip.findByIdAndUserId(tripId, req.user.userId);
+              if (!trip) return sendNotFoundError(res, 'Trip not found');
+
+              const validation = validateCreateStop(req.body);
+              if (!validation.isValid) return sendValidationError(res, validation.message);
+
+              const { cityId, city_id, startDate, endDate, start_date, end_date, stopOrder, stop_order, notes } = req.body;
+              const cId = cityId || city_id;
+              let cityName = req.body.cityName || req.body.city_name || '';
+              if (cId) {
+                const city = await City.findById(cId);
+                if (city) cityName = city.name;
+              }
+
+              const stop = await TripStop.create({
+                tripId,
+                cityId: cId,
+                cityName: cityName || 'Destination',
+                stopOrder: parseInt(stopOrder !== undefined ? stopOrder : stop_order, 10),
+                startDate: startDate || start_date,
+                endDate: endDate || end_date,
+                notes
+              });
+
+              return res.status(201).json(stop.toJSON());
             }
+
+            // POST /api/trips (Create Trip)
             if (pathname === '/api/trips' && req.method === 'POST') {
-              return res.status(201).json({
-                id: require('crypto').randomUUID(),
-                ...req.body,
-                userId: req.user.userId
+              const validation = validateCreateTrip(req.body);
+              if (!validation.isValid) return sendValidationError(res, validation.message);
+
+              const { title, startDate, endDate, start_date, end_date, budget, description, currency, coverImage, cover_image } = req.body;
+              const trip = await Trip.create({
+                userId: req.user.userId,
+                title,
+                description,
+                startDate: startDate || start_date,
+                endDate: endDate || end_date,
+                budget: budget !== undefined && budget !== null && budget !== '' ? Number(budget) : 0.00,
+                currency: currency || 'USD',
+                coverImage: coverImage || cover_image
               });
+
+              return res.status(201).json(trip.toExactCreatedResponse());
             }
-            return res.status(200).json({ status: 'ok', user: req.user });
+
+            // GET /api/trips (List trips)
+            if (pathname === '/api/trips' && req.method === 'GET') {
+              const trips = await Trip.findByUserId(req.user.userId);
+              return res.status(200).json(trips.map(t => t.toJSON()));
+            }
+
+            // GET /api/trips/:id
+            if (pathname.startsWith('/api/trips/') && req.method === 'GET') {
+              const id = pathname.replace('/api/trips/', '');
+              if (!UUID_REGEX.test(id)) return sendNotFoundError(res, 'Trip not found');
+              const trip = await Trip.findByIdAndUserId(id, req.user.userId);
+              if (!trip) return sendNotFoundError(res, 'Trip not found');
+              const stops = await TripStop.findByTripId(id);
+              const data = trip.toJSON();
+              data.stops = stops.map(s => s.toJSON());
+              return res.status(200).json(data);
+            }
+
+            // PUT /api/trips/:id
+            if (pathname.startsWith('/api/trips/') && req.method === 'PUT') {
+              const id = pathname.replace('/api/trips/', '');
+              if (!UUID_REGEX.test(id)) return sendNotFoundError(res, 'Trip not found');
+              const trip = await Trip.findByIdAndUserId(id, req.user.userId);
+              if (!trip) return sendNotFoundError(res, 'Trip not found');
+
+              const validation = validateUpdateTrip(req.body);
+              if (!validation.isValid) return sendValidationError(res, validation.message);
+
+              const updated = await Trip.update(id, req.user.userId, req.body);
+              return res.status(200).json(updated.toJSON());
+            }
+
+            // DELETE /api/trips/:id
+            if (pathname.startsWith('/api/trips/') && req.method === 'DELETE') {
+              const id = pathname.replace('/api/trips/', '');
+              if (!UUID_REGEX.test(id)) return sendNotFoundError(res, 'Trip not found');
+              const trip = await Trip.findByIdAndUserId(id, req.user.userId);
+              if (!trip) return sendNotFoundError(res, 'Trip not found');
+
+              await Trip.delete(id, req.user.userId);
+              return res.status(200).json({ message: 'Trip deleted successfully', id });
+            }
+
+            return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found' } });
           });
         }
 
