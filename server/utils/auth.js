@@ -116,7 +116,7 @@ function comparePassword(password, storedHash) {
  * Generate standard HS256 JWT
  * Payload shape: { userId: string, email: string, iat: number, exp: number }
  */
-function generateToken(user, expiresInStr = process.env.JWT_EXPIRES_IN || '1h', customIat = null) {
+function generateToken(user, expiresInStr = process.env.JWT_EXPIRES_IN || '8h', customIat = null) {
   const secret = getJwtSecret();
   const now = customIat !== null ? customIat : Math.floor(Date.now() / 1000);
   const durationSeconds = parseExpiresIn(expiresInStr);

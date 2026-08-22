@@ -42,8 +42,8 @@ try {
   expApp.use('/api/auth', authRouter);
   expApp.use('/api/users', usersRouter);
   expApp.use('/api/cities', citiesRouter);
-  expApp.use('/api/trips', shareRouter);
   expApp.use('/api/trips', tripsRouter);
+  expApp.use('/api/trips', shareRouter);
   expApp.use('/api/public', publicRouter);
   expApp.use('/api/stops', stopActivitiesRouter);
 
@@ -276,6 +276,15 @@ try {
               const tripId = parts[3];
               const crypto = require('crypto');
               const shareToken = crypto.randomBytes(4).toString('hex');
+              const db = require('./db');
+              try {
+                await db.query(
+                  'INSERT INTO shares (id, trip_id, share_token) VALUES ($1, $2, $3)',
+                  [crypto.randomUUID(), tripId, shareToken]
+                );
+              } catch (e) {
+                // Ignore if mock trip ID or duplicate
+              }
               const baseUrl = (process.env.PUBLIC_APP_BASE_URL || 'http://localhost:5173').replace(/\/$/, '');
               return res.status(200).json({
                 shareToken,
