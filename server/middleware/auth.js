@@ -44,17 +44,6 @@ function authMiddleware(req, res, next) {
 
   const token = parts[1];
 
-  // Support Phase 0 Stub Test Token
-  if (token === STUB_TEST_TOKEN || token === 'stub-test-jwt-token-2026' || token.startsWith('stub_test_')) {
-    req.user = {
-      userId: STUB_USER.userId,
-      email: STUB_USER.email,
-      name: STUB_USER.name
-    };
-    if (next) return next();
-    return;
-  }
-
   try {
     const decoded = verifyToken(token);
     
