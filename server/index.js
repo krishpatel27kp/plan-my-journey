@@ -21,12 +21,17 @@ function loadEnv() {
 }
 loadEnv();
 
+const http = require('http');
 const app = require('./app');
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = typeof app.listen === 'function' 
+  ? app.listen(PORT, () => logStart())
+  : http.createServer(app).listen(PORT, () => logStart());
+
+function logStart() {
   console.log(`============================================================`);
   console.log(`Plan My Journey API Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
   console.log(`Auth System: Real JWT Authentication Active`);
   console.log(`============================================================`);
-});
+}

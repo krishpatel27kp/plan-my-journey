@@ -93,8 +93,40 @@ if (!pool) {
       }
 
       try {
-        // Translate PostgreSQL $1, $2, ... to SQLite ?
-        let normalizedSql = sqlText.replace(/\$(\d+)/g, '?');
+        let workingSql = sqlText;
+
+        // Auto-inject UUID for INSERT statements where id column is omitted (matching Postgres gen_random_uuid default)
+        const crypto = require('crypto');
+        const insertMatch = sqlText.match(/^\s*INSERT\s+INTO\s+([a-zA-Z0-9_]+)\s*\(([^)]+)\)\s*VALUES\s*([\s\S]+)$/i);
+        if (insertMatch) {
+          const table = insertMatch[1];
+          const cols = insertMatch[2];
+          const afterValues = insertMatch[3];
+          const colNames = cols.split(',').map(c => c.trim().toLowerCase());
+          if (!colNames.includes('id')) {
+            const onConflictIdx = afterValues.search(/\bON\s+CONFLICT\b/i);
+            const valueTuplesPart = onConflictIdx !== -1 ? afterValues.slice(0, onConflictIdx) : afterValues;
+            const suffixPart = onConflictIdx !== -1 ? afterValues.slice(onConflictIdx) : '';
+
+            const updatedColsSql = 'INSERT INTO ' + table + ' (id, ' + cols + ') VALUES ';
+            const updatedTuples = valueTuplesPart.replace(/\(([^)]+)\)/g, (match, tupleContent) => {
+              const newId = crypto.randomUUID();
+              return "('" + newId + "', " + tupleContent + ")";
+            });
+            workingSql = updatedColsSql + updatedTuples + suffixPart;
+          }
+        }
+
+        // Translate PostgreSQL $1, $2, ... to SQLite ? while expanding positional params
+        let normalizedParams = [];
+        let normalizedSql = workingSql.replace(/\$(\d+)/g, (match, paramNum) => {
+          const idx = parseInt(paramNum, 10) - 1;
+          normalizedParams.push(params[idx]);
+          return '?';
+        });
+        if (normalizedParams.length === 0) {
+          normalizedParams = [...params];
+        }
 
         // Translate ILIKE to LIKE for SQLite compatibility
         normalizedSql = normalizedSql.replace(/\bILIKE\b/gi, 'LIKE');
@@ -108,10 +140,10 @@ if (!pool) {
         const stmt = sqliteDb.prepare(normalizedSql);
 
         if (isSelect || hasReturning) {
-          const rows = stmt.all(...params);
+          const rows = stmt.all(...normalizedParams);
           return { rows: rows || [] };
         } else {
-          const info = stmt.run(...params);
+          const info = stmt.run(...normalizedParams);
           return {
             rows: [],
             rowCount: info.changes,

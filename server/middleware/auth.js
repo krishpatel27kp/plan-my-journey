@@ -10,16 +10,6 @@
 
 const { verifyToken } = require('../utils/auth');
 
-const STUB_TEST_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJhYWFhYWFhYS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEiLCJlbWFpbCI6InRlc3RAdHJhdmVsZXIuY29tIiwiaWF0IjoxNzAwMDAwMDAwfQ.stub_test_signature_plan_my_journey_2026';
-
-const STUB_USER = {
-  userId: 'aaaaaaaa-1111-1111-1111-111111111111',
-  email: 'test@traveler.com',
-  name: 'Test Traveler',
-  iat: 1700000000,
-  exp: 2000000000
-};
-
 function authMiddleware(req, res, next) {
   const authHeader = req.headers ? (req.headers.authorization || req.headers.Authorization) : null;
 
@@ -43,17 +33,6 @@ function authMiddleware(req, res, next) {
   }
 
   const token = parts[1];
-
-  // Support Phase 0 Stub Test Token
-  if (token === STUB_TEST_TOKEN || token === 'stub-test-jwt-token-2026' || token.startsWith('stub_test_')) {
-    req.user = {
-      userId: STUB_USER.userId,
-      email: STUB_USER.email,
-      name: STUB_USER.name
-    };
-    if (next) return next();
-    return;
-  }
 
   try {
     const decoded = verifyToken(token);
@@ -85,7 +64,5 @@ function authMiddleware(req, res, next) {
 }
 
 module.exports = {
-  authMiddleware,
-  STUB_TEST_TOKEN,
-  STUB_USER
+  authMiddleware
 };

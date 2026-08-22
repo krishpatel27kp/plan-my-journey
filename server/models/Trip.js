@@ -54,7 +54,7 @@ class Trip {
           INSERT INTO users (id, name, email, password_hash, created_at, updated_at)
           VALUES ($1, $2, $3, $4, $5, $6)
           ON CONFLICT (id) DO NOTHING
-        `, [userId, 'Traveler', `${userId}@traveler.local`, 'stub_hash', now, now]);
+        `, [userId, 'Traveler', `${userId}@traveler.local`, 'auth_managed_hash', now, now]);
       } catch (err) {
         // User may already exist with different email or constraint, safe to proceed
       }

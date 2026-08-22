@@ -48,14 +48,22 @@ try {
   expApp.use('/api/stops', stopActivitiesRouter);
   expApp.use('/api/itinerary-activities', stopActivitiesRouter);
 
-  // Fallback 404 handler
-  expApp.use((req, res) => {
+  // Serve static frontend assets
+  expApp.use(express.static(path.join(__dirname, '../client')));
+
+  // Fallback 404 handler for API routes
+  expApp.use('/api', (req, res) => {
     res.status(404).json({
       error: {
         code: 'NOT_FOUND',
         message: 'Resource not found'
       }
     });
+  });
+
+  // SPA fallback for frontend client navigation
+  expApp.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/index.html'));
   });
 
   // Global Error Handler
@@ -93,6 +101,30 @@ try {
       res.setHeader('Content-Type', 'application/json');
       res.end(JSON.stringify(body));
     };
+
+    // Static file serving for client frontend
+    if (!pathname.startsWith('/api') && req.method === 'GET') {
+      const fs = require('fs');
+      let filePath = path.join(__dirname, '../client', pathname === '/' ? 'index.html' : pathname);
+      if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+        filePath = path.join(__dirname, '../client/index.html');
+      }
+      if (fs.existsSync(filePath)) {
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeMap = {
+          '.html': 'text/html',
+          '.js': 'application/javascript',
+          '.css': 'text/css',
+          '.json': 'application/json',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.svg': 'image/svg+xml'
+        };
+        const contentType = mimeMap[ext] || 'application/octet-stream';
+        res.writeHead(200, { 'Content-Type': contentType });
+        return res.end(fs.readFileSync(filePath));
+      }
+    }
 
     let body = '';
     req.on('data', (chunk) => { body += chunk; });
@@ -250,13 +282,34 @@ try {
                 if (origTrip) {
                   const clonedTrip = await Trip.create({
                     userId: req.user.userId,
-                    title: `${origTrip.title} (Copy)`,
+                    title: `Copy of ${origTrip.title}`,
                     description: origTrip.description,
                     startDate: origTrip.startDate,
                     endDate: origTrip.endDate,
                     budget: origTrip.budget,
                     currency: origTrip.currency
                   });
+
+                  // Clone stops & activities
+                  const stops = await db.query('SELECT * FROM trip_stops WHERE trip_id = $1 ORDER BY stop_order ASC', [origTrip.id]);
+                  for (const stop of stops.rows) {
+                    const newStop = await db.query(
+                      `INSERT INTO trip_stops (trip_id, city_id, city_name, stop_order, arrival_date, departure_date, notes)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7)
+                       RETURNING id`,
+                      [clonedTrip.id, stop.city_id, stop.city_name, stop.stop_order, stop.arrival_date, stop.departure_date, stop.notes]
+                    );
+
+                    const acts = await db.query('SELECT * FROM itinerary_activities WHERE trip_stop_id = $1', [stop.id]);
+                    for (const act of acts.rows) {
+                      await db.query(
+                        `INSERT INTO itinerary_activities (trip_stop_id, activity_id, title, activity_date, start_time, end_time, order_index, cost, notes)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                        [newStop.rows[0].id, act.activity_id, act.title, act.activity_date, act.start_time, act.end_time, act.order_index, act.cost, act.notes]
+                      );
+                    }
+                  }
+
                   return res.status(201).json({ id: clonedTrip.id, newTripId: clonedTrip.id, userId: req.user.userId });
                 }
               }
