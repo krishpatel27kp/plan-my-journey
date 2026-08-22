@@ -1,6 +1,7 @@
 /**
  * Itinerary Builder Component (Hero Feature - Luxury Travel Editorial System)
  * Features Itinerary Day-by-Day, Connected Multi-City Route Timeline, and Interactive Budget Breakdown in Indian Rupees (₹).
+ * Strictly starts at 0 destinations and ₹0 spent for new trips.
  */
 import { api } from '../api.js';
 import { renderAddCityModal } from './AddCityModal.js';
@@ -51,7 +52,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
   function calculateFinancials() {
     const totalBudget = Number(budget?.budget ?? trip?.budget) || 50000;
     
-    // Calculate total spent from scheduled activities across all stops
+    // Calculate total spent strictly from scheduled activities across all stops
     let activitiesSpent = 0;
     const stops = trip?.stops || [];
     stops.forEach(s => {
@@ -60,14 +61,14 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
       });
     });
 
-    const totalSpent = Number(budget?.totalSpent) || (activitiesSpent > 0 ? activitiesSpent : 42700);
+    const totalSpent = Number(budget?.totalSpent) || activitiesSpent;
     const remaining = totalBudget - totalSpent;
     const percentUsed = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
 
-    const accommodationSpent = Math.round(totalSpent * 0.40);
-    const transportSpent = Math.round(totalSpent * 0.25);
-    const foodSpent = Math.round(totalSpent * 0.15);
-    const directActivitiesSpent = activitiesSpent > 0 ? activitiesSpent : Math.round(totalSpent * 0.20);
+    const accommodationSpent = totalSpent > 0 ? Math.round(totalSpent * 0.40) : 0;
+    const transportSpent = totalSpent > 0 ? Math.round(totalSpent * 0.25) : 0;
+    const foodSpent = totalSpent > 0 ? Math.round(totalSpent * 0.15) : 0;
+    const directActivitiesSpent = activitiesSpent;
 
     return {
       totalBudget,
@@ -106,11 +107,11 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     const stops = [...(trip.stops || [])].sort((a, b) => (a.stopOrder || 0) - (b.stopOrder || 0));
     const datesStr = trip.startDate && trip.endDate
       ? `${formatDate(trip.startDate)} – ${formatDate(trip.endDate)}`
-      : '10 Sep – 15 Sep 2026';
+      : 'Dates Flexible';
 
     const routeProgression = stops.length > 0
       ? stops.map(s => escapeHtml(s.cityName)).join(' ➔ ')
-      : 'Goa ➔ Mumbai ➔ Jaipur';
+      : 'No destinations added yet — Click "+ Add Destination" to start building your route';
 
     container.innerHTML = `
       <!-- Top Navigation & Title Bar -->
@@ -127,14 +128,14 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
             <span class="badge" style="background: #e6f4f2; color: #006d64; border: 1px solid #006d64; font-weight: 800; font-size: 0.85rem; padding: 0.35rem 0.85rem;">
               📅 ${escapeHtml(datesStr)}
             </span>
-            <span class="badge" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-weight: 800; font-size: 0.85rem; padding: 0.35rem 0.85rem;">
-              📍 ${stops.length || 3} Destinations
+            <span class="badge" style="background: ${stops.length > 0 ? '#ecfdf5' : '#f8fafc'}; color: ${stops.length > 0 ? '#059669' : '#64748b'}; border: 1px solid ${stops.length > 0 ? '#a7f3d0' : '#cbd5e1'}; font-weight: 800; font-size: 0.85rem; padding: 0.35rem 0.85rem;">
+              📍 ${stops.length} ${stops.length === 1 ? 'Destination' : 'Destinations'}
             </span>
           </div>
 
           <p style="color: #475569; font-size: 0.95rem; margin-top: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
             <span>🗺️ Route:</span>
-            <strong style="color: #0f172a;">${routeProgression}</strong>
+            <strong style="color: ${stops.length > 0 ? '#0f172a' : '#006d64'};">${routeProgression}</strong>
           </p>
         </div>
 
@@ -163,7 +164,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
       </div>
 
       ${financials.isOverBudget ? `
-        <div class="animate-fade-in" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 16px; color: #ef4444; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+        <div class="animate-fade-in" style="margin-bottom: 1.5rem; padding: 1rem 1.25rem; background: #fef2f2; border: 1.5.px solid #fecaca; border-radius: 16px; color: #ef4444; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
           <span>⚠️ Budget Warning: Estimated total spend (₹${financials.totalSpent.toLocaleString('en-IN')}) exceeds total target budget (₹${financials.totalBudget.toLocaleString('en-IN')}) by ₹${Math.abs(financials.remaining).toLocaleString('en-IN')}.</span>
           <button class="btn btn-sm" id="btn-fix-budget-alert" style="background: #ef4444; color: #fff; border-radius: 9999px; font-weight: 800;">Review Budget ➔</button>
         </div>
@@ -200,6 +201,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     container.querySelector('#btn-share-itinerary')?.addEventListener('click', handleShareTripAction);
     container.querySelector('#btn-add-stop-main')?.addEventListener('click', openAddCityModal);
     container.querySelector('#btn-add-stop-empty')?.addEventListener('click', openAddCityModal);
+    container.querySelector('#btn-add-stop-timeline-empty')?.addEventListener('click', openAddCityModal);
     container.querySelector('#btn-add-stop-sidebar')?.addEventListener('click', openAddCityModal);
 
     // Bind stop actions
@@ -239,38 +241,43 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
   }
 
   function renderItineraryView(stops, financials) {
-    // If no stops, provide seed stops so user experiences full interactive timeline
-    const displayStops = stops.length > 0 ? stops : [
-      {
-        id: 'stop-goa-demo',
-        cityName: 'North Goa',
-        startDate: '2026-09-10',
-        endDate: '2026-09-12',
-        activities: [
-          { id: 'act-1', title: 'Baga Beach Scuba Diving & Parasailing', category: 'Adventure', startTime: '09:30', duration: '3 hours', cost: 3500 },
-          { id: 'act-2', title: 'Shack Lunch & Oceanfront Relaxing', category: 'Food', startTime: '13:00', duration: '2 hours', cost: 1800 },
-          { id: 'act-3', title: 'Fort Aguada Sunset Viewpoint', category: 'Sightseeing', startTime: '17:00', duration: '2 hours', cost: 500 }
-        ]
-      },
-      {
-        id: 'stop-south-goa-demo',
-        cityName: 'South Goa',
-        startDate: '2026-09-13',
-        endDate: '2026-09-15',
-        activities: [
-          { id: 'act-4', title: 'Palolem Beach Kayaking & Dolphin Spotting', category: 'Adventure', startTime: '08:00', duration: '2 hours', cost: 2200 },
-          { id: 'act-5', title: 'Old Goa Basilica Heritage Walking Tour', category: 'Culture', startTime: '11:00', duration: '2.5 hours', cost: 1200 },
-          { id: 'act-6', title: 'Fontainhas Spice Plantation & Dinner', category: 'Food', startTime: '19:00', duration: '3 hours', cost: 2500 }
-        ]
-      }
-    ];
+    if (stops.length === 0) {
+      return `
+        <div style="display: grid; grid-template-columns: 1fr 340px; gap: 2rem; align-items: start;">
+          <div class="empty-state animate-fade-in" style="padding: 4rem 2rem; background: #ffffff; border-radius: 24px; border: 1.5px dashed #cbd5e1; text-align: center;">
+            <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">📍</div>
+            <h3 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 900; color: #0f172a; margin-bottom: 0.35rem;">
+              No destinations added to this trip yet
+            </h3>
+            <p style="color: #64748b; font-size: 0.98rem; max-width: 480px; margin: 0 auto 1.5rem auto; line-height: 1.5;">
+              Start building your trip by adding your first destination city (e.g., Goa, Paris, Manali, Tokyo). You can then schedule curated activities or add custom plans.
+            </p>
+            <button class="btn btn-primary" id="btn-add-stop-empty" style="background: #006d64; border-radius: 9999px; height: 48px; padding: 0 1.75rem; font-weight: 800; font-size: 0.98rem;">
+              + Add First Destination
+            </button>
+          </div>
+
+          <aside style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <div class="card" style="padding: 1.5rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: 20px; box-shadow: var(--shadow-sm);">
+              <span style="font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #64748b; letter-spacing: 0.04em;">Target Budget</span>
+              <div style="font-family: var(--font-heading); font-size: 1.95rem; font-weight: 900; color: #0f172a; margin: 0.25rem 0 0.5rem 0;">
+                ₹${financials.totalBudget.toLocaleString('en-IN')}
+              </div>
+              <p style="font-size: 0.85rem; color: #059669; font-weight: 700;">
+                ₹${financials.totalBudget.toLocaleString('en-IN')} remaining (0% spent)
+              </p>
+            </div>
+          </aside>
+        </div>
+      `;
+    }
 
     return `
       <div style="display: grid; grid-template-columns: 1fr 340px; gap: 2rem; align-items: start;">
         
         <!-- Left / Main Area: City Stops & Connected Itinerary Timeline -->
         <div style="display: flex; flex-direction: column; gap: 2rem;">
-          ${displayStops.map((stop, idx) => {
+          ${stops.map((stop, idx) => {
             const stopCost = (stop.activities || []).reduce((acc, a) => acc + (parseFloat(a.cost) || 0), 0);
             
             return `
@@ -402,11 +409,11 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
             <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.9rem;">
               <div style="display: flex; justify-content: space-between; color: #64748b;">
                 <span>Total Destinations</span>
-                <span style="color: #0f172a; font-weight: 800;">${displayStops.length} Cities</span>
+                <span style="color: #0f172a; font-weight: 800;">${stops.length} Cities</span>
               </div>
               <div style="display: flex; justify-content: space-between; color: #64748b;">
                 <span>Total Activities</span>
-                <span style="color: #0f172a; font-weight: 800;">${displayStops.reduce((acc, s) => acc + (s.activities?.length || 0), 0)} Scheduled</span>
+                <span style="color: #0f172a; font-weight: 800;">${stops.reduce((acc, s) => acc + (s.activities?.length || 0), 0)} Scheduled</span>
               </div>
             </div>
 
@@ -422,11 +429,22 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
   }
 
   function renderTimelineView(stops, financials) {
-    const displayStops = stops.length > 0 ? stops : [
-      { id: 's1', cityName: 'Goa', startDate: '2026-09-10', activities: [{ title: 'Baga Beach Watersports', cost: 3500, startTime: '10:00' }] },
-      { id: 's2', cityName: 'Mumbai', startDate: '2026-09-13', activities: [{ title: 'Gateway of India & Colaba Tour', cost: 1800, startTime: '11:00' }] },
-      { id: 's3', cityName: 'Jaipur', startDate: '2026-09-16', activities: [{ title: 'Amber Palace Sunset Trek', cost: 2500, startTime: '16:00' }] }
-    ];
+    if (stops.length === 0) {
+      return `
+        <div class="empty-state animate-fade-in" style="padding: 4rem 2rem; background: #ffffff; border-radius: 24px; border: 1.5px dashed #cbd5e1; text-align: center;">
+          <div style="font-size: 3.5rem; margin-bottom: 0.75rem;">🗺️</div>
+          <h3 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 900; color: #0f172a; margin-bottom: 0.35rem;">
+            No route timeline created yet
+          </h3>
+          <p style="color: #64748b; font-size: 0.98rem; max-width: 480px; margin: 0 auto 1.5rem auto; line-height: 1.5;">
+            Add destination cities to see the visual multi-city route progression and daily itinerary timeline.
+          </p>
+          <button class="btn btn-primary" id="btn-add-stop-timeline-empty" style="background: #006d64; border-radius: 9999px; height: 48px; padding: 0 1.75rem; font-weight: 800; font-size: 0.98rem;">
+            + Add Destination
+          </button>
+        </div>
+      `;
+    }
 
     return `
       <div class="card animate-fade-in" style="padding: 2.25rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: 24px; box-shadow: var(--shadow-sm);">
@@ -447,17 +465,17 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
 
         <!-- Route Nodes Connector Ribbon -->
         <div style="display: flex; align-items: center; gap: 1.25rem; overflow-x: auto; padding: 1.75rem; background: #f8fafc; border-radius: 20px; border: 1px solid var(--color-border); margin-bottom: 2.5rem;">
-          ${displayStops.map((stop, idx) => `
+          ${stops.map((stop, idx) => `
             <div style="display: flex; align-items: center; gap: 1.25rem; flex-shrink: 0;">
               <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
                 <div style="width: 48px; height: 48px; border-radius: 50%; background: #006d64; color: #fff; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,109,100,0.3); font-size: 1.1rem;">
                   ${idx + 1}
                 </div>
                 <span style="font-weight: 900; color: #0f172a; font-size: 1.05rem; margin-top: 0.5rem;">${escapeHtml(stop.cityName)}</span>
-                <span style="font-size: 0.8rem; color: #006d64; font-weight: 700;">${stop.activities?.length || 1} Activities</span>
+                <span style="font-size: 0.8rem; color: #006d64; font-weight: 700;">${stop.activities?.length || 0} Activities</span>
               </div>
               
-              ${idx < displayStops.length - 1 ? `
+              ${idx < stops.length - 1 ? `
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 0.2rem;">
                   <span style="font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase;">🚆 Transit</span>
                   <span style="font-size: 1.5rem; color: #006d64; font-weight: 900;">➔</span>
@@ -469,7 +487,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
 
         <!-- Detailed Chronological Timeline List -->
         <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-          ${displayStops.map((stop, idx) => {
+          ${stops.map((stop, idx) => {
             const stopActivities = stop.activities || [];
             const subtotal = stopActivities.reduce((acc, a) => acc + (parseFloat(a.cost) || 0), 0);
 
@@ -527,11 +545,6 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     if (isBudgetLoading) {
       return `<div style="text-align:center;padding:5rem 0;"><div class="spinner" style="width:44px;height:44px;border:3px solid rgba(0,109,100,.2);border-top-color:#006d64;border-radius:50%;margin:0 auto;"></div><p style="color:#64748b;margin-top:1rem;">Calculating budget breakdown...</p></div>`;
     }
-
-    const displayStops = stops.length > 0 ? stops : [
-      { cityName: 'North Goa', activities: [{ cost: 3500 }, { cost: 1800 }, { cost: 500 }] },
-      { cityName: 'South Goa', activities: [{ cost: 2200 }, { cost: 1200 }, { cost: 2500 }] }
-    ];
 
     return `
       <div class="card animate-fade-in" style="padding: 2.25rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: 24px; box-shadow: var(--shadow-sm);">
@@ -596,21 +609,21 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
               
               <div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.4rem; color: #0f172a; font-weight: 700;">
-                  <span>🏨 Accommodation & Stays (Est. 40%)</span>
+                  <span>🏨 Accommodation & Stays</span>
                   <strong>₹${Number(financials.byCategory.accommodation || 0).toLocaleString('en-IN')}</strong>
                 </div>
                 <div style="height: 8px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
-                  <div style="width: 40%; height: 100%; background: #6366f1; border-radius: 9999px;"></div>
+                  <div style="width: ${financials.totalBudget > 0 ? Math.min(100, Math.round((financials.byCategory.accommodation / financials.totalBudget) * 100)) : 0}%; height: 100%; background: #6366f1; border-radius: 9999px;"></div>
                 </div>
               </div>
 
               <div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.4rem; color: #0f172a; font-weight: 700;">
-                  <span>🚆 Transport & Flights (Est. 25%)</span>
+                  <span>🚆 Transport & Flights</span>
                   <strong>₹${Number(financials.byCategory.transport || 0).toLocaleString('en-IN')}</strong>
                 </div>
                 <div style="height: 8px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
-                  <div style="width: 25%; height: 100%; background: #0284c7; border-radius: 9999px;"></div>
+                  <div style="width: ${financials.totalBudget > 0 ? Math.min(100, Math.round((financials.byCategory.transport / financials.totalBudget) * 100)) : 0}%; height: 100%; background: #0284c7; border-radius: 9999px;"></div>
                 </div>
               </div>
 
@@ -626,11 +639,11 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
 
               <div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 0.4rem; color: #0f172a; font-weight: 700;">
-                  <span>🍲 Food & Local Dining (Est. 15%)</span>
+                  <span>🍲 Food & Local Dining</span>
                   <strong>₹${Number(financials.byCategory.food || 0).toLocaleString('en-IN')}</strong>
                 </div>
                 <div style="height: 8px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
-                  <div style="width: 15%; height: 100%; background: #d97706; border-radius: 9999px;"></div>
+                  <div style="width: ${financials.totalBudget > 0 ? Math.min(100, Math.round((financials.byCategory.food / financials.totalBudget) * 100)) : 0}%; height: 100%; background: #d97706; border-radius: 9999px;"></div>
                 </div>
               </div>
 
@@ -643,20 +656,26 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
               Spending by Destination Stop
             </h4>
 
-            <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-              ${displayStops.map(stop => {
-                const stopCost = (stop.activities || []).reduce((acc, a) => acc + (parseFloat(a.cost) || 0), 0);
-                return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.15rem; background: #ffffff; border-radius: 14px; border: 1px solid var(--color-border);">
-                    <div>
-                      <span style="font-weight: 800; color: #0f172a; font-size: 0.95rem;">📍 ${escapeHtml(stop.cityName)}</span>
-                      <span style="display: block; font-size: 0.78rem; color: #64748b;">${stop.activities?.length || 0} Activities</span>
+            ${stops.length === 0 ? `
+              <div style="text-align: center; padding: 2rem 1rem; color: #64748b; font-size: 0.9rem;">
+                No destinations added yet. Add a city stop and schedule activities to start tracking spending by location.
+              </div>
+            ` : `
+              <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                ${stops.map(stop => {
+                  const stopCost = (stop.activities || []).reduce((acc, a) => acc + (parseFloat(a.cost) || 0), 0);
+                  return `
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.15rem; background: #ffffff; border-radius: 14px; border: 1px solid var(--color-border);">
+                      <div>
+                        <span style="font-weight: 800; color: #0f172a; font-size: 0.95rem;">📍 ${escapeHtml(stop.cityName)}</span>
+                        <span style="display: block; font-size: 0.78rem; color: #64748b;">${stop.activities?.length || 0} Activities</span>
+                      </div>
+                      <span style="font-weight: 900; color: #006d64; font-size: 1.05rem;">₹${stopCost.toLocaleString('en-IN')}</span>
                     </div>
-                    <span style="font-weight: 900; color: #006d64; font-size: 1.05rem;">₹${stopCost.toLocaleString('en-IN')}</span>
-                  </div>
-                `;
-              }).join('')}
-            </div>
+                  `;
+                }).join('')}
+              </div>
+            `}
           </div>
 
         </div>
