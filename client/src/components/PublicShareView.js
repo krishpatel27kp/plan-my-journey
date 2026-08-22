@@ -134,10 +134,13 @@ export function renderPublicShareView({ shareToken, onBack }) {
           </div>
 
           <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <button class="btn btn-accent" id="btn-clone-trip">
+              ✨ Copy Trip to My Account
+            </button>
             <button class="btn btn-secondary" id="btn-copy-link">
               🔗 Copy Share Link
             </button>
-            <button class="btn btn-primary" id="btn-explore-back">
+            <button class="btn btn-secondary" id="btn-explore-back">
               Explore Destinations
             </button>
           </div>
@@ -170,6 +173,44 @@ export function renderPublicShareView({ shareToken, onBack }) {
       navigator.clipboard.writeText(window.location.href);
       copyBtn.textContent = '✓ Link Copied!';
       setTimeout(() => { copyBtn.textContent = '🔗 Copy Share Link'; }, 2000);
+    });
+
+    const cloneBtn = content.querySelector('#btn-clone-trip');
+    cloneBtn?.addEventListener('click', async () => {
+      const token = localStorage.getItem('pmj_token');
+      if (!token) {
+        alert('Please sign in or create an account to copy this journey to your dashboard.');
+        return;
+      }
+
+      const originalText = cloneBtn.textContent;
+      cloneBtn.textContent = '⏳ Copying Trip...';
+      cloneBtn.disabled = true;
+
+      try {
+        const API_BASE = window.__API_BASE_URL__ || (window.location.port === '5173' ? 'http://localhost:5000/api' : '/api');
+        const res = await fetch(`${API_BASE}/trips/${shareToken}/copy`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error?.message || 'Failed to copy trip to account');
+        }
+
+        cloneBtn.textContent = '✓ Copied to Your Account!';
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1200);
+      } catch (err) {
+        alert('Copy error: ' + err.message);
+        cloneBtn.textContent = originalText;
+        cloneBtn.disabled = false;
+      }
     });
   }
 
