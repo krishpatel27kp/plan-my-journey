@@ -1,6 +1,6 @@
 // server/routes/share.js
 // Pillar C — Sharing: Share token generation & Copy Trip (requires auth)
-// Phase 2 implementation
+// Phase 2 & Phase 3 implementation
 
 const express = require('express');
 const router = express.Router();
@@ -112,31 +112,58 @@ router.post('/:tripId/share', authMiddleware, async (req, res, next) => {
   }
 });
 
-// POST /api/trips/:shareToken/copy — clone shared trip into viewer's account (requires auth)
+// POST /api/trips/:shareToken/copy — Transactional deep-clone of shared trip into viewer's account (requires auth)
 router.post('/:shareToken/copy', authMiddleware, async (req, res, next) => {
+  let client;
   try {
     const { shareToken } = req.params;
     const userId = req.user.userId;
 
-    // Look up original trip from shareToken
-    const shareResult = await db.query(
-      'SELECT trip_id FROM shares WHERE share_token = $1',
-      [shareToken]
-    );
-
-    if (shareResult.rows.length === 0) {
+    if (!shareToken || typeof shareToken !== 'string') {
       return res.status(404).json({
         error: {
           code: 'NOT_FOUND',
-          message: 'Shared trip not found'
+          message: 'Shared trip not found or link has expired'
         }
       });
     }
 
-    const originalTripId = shareResult.rows[0].trip_id;
-    const tripRes = await db.query('SELECT * FROM trips WHERE id = $1', [originalTripId]);
+    client = await db.connect();
+    await client.query('BEGIN');
 
+    // 1. Look up share token and check expiration
+    const shareResult = await client.query(
+      'SELECT trip_id, expires_at FROM shares WHERE share_token = $1',
+      [shareToken]
+    );
+
+    if (shareResult.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Shared trip not found or link has expired'
+        }
+      });
+    }
+
+    const shareRow = shareResult.rows[0];
+    if (shareRow.expires_at && new Date(shareRow.expires_at) < new Date()) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Shared trip not found or link has expired'
+        }
+      });
+    }
+
+    const originalTripId = shareRow.trip_id;
+
+    // 2. Fetch original trip details
+    const tripRes = await client.query('SELECT * FROM trips WHERE id = $1', [originalTripId]);
     if (tripRes.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({
         error: {
           code: 'NOT_FOUND',
@@ -146,42 +173,97 @@ router.post('/:shareToken/copy', authMiddleware, async (req, res, next) => {
     }
 
     const orig = tripRes.rows[0];
+    const newTitle = orig.title.startsWith('Copy of ') ? orig.title : `Copy of ${orig.title}`;
 
-    // Clone trip for current user
-    const newTripRes = await db.query(
-      `INSERT INTO trips (user_id, title, description, start_date, end_date, budget, currency)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+    // 3. Insert newly cloned trip row owned by current user
+    const newTripRes = await client.query(
+      `INSERT INTO trips (user_id, title, description, start_date, end_date, cover_image, budget, currency, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id`,
-      [userId, `${orig.title} (Copy)`, orig.description, orig.start_date, orig.end_date, orig.budget, orig.currency]
+      [
+        userId,
+        newTitle,
+        orig.description,
+        orig.start_date,
+        orig.end_date,
+        orig.cover_image,
+        orig.budget,
+        orig.currency || 'USD',
+        'planning'
+      ]
     );
 
     const newTripId = newTripRes.rows[0].id;
 
-    // Clone stops & activities
-    const stops = await db.query('SELECT * FROM trip_stops WHERE trip_id = $1 ORDER BY stop_order ASC', [originalTripId]);
-    for (const stop of stops.rows) {
-      const newStop = await db.query(
+    // 4. Fetch and clone all trip stops
+    const stopsRes = await client.query(
+      'SELECT * FROM trip_stops WHERE trip_id = $1 ORDER BY stop_order ASC',
+      [originalTripId]
+    );
+
+    for (const stop of stopsRes.rows) {
+      const newStopRes = await client.query(
         `INSERT INTO trip_stops (trip_id, city_id, city_name, stop_order, arrival_date, departure_date, notes)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING id`,
-        [newTripId, stop.city_id, stop.city_name, stop.stop_order, stop.arrival_date, stop.departure_date, stop.notes]
+        [
+          newTripId,
+          stop.city_id,
+          stop.city_name,
+          stop.stop_order,
+          stop.arrival_date,
+          stop.departure_date,
+          stop.notes
+        ]
       );
 
-      const acts = await db.query('SELECT * FROM itinerary_activities WHERE trip_stop_id = $1', [stop.id]);
-      for (const act of acts.rows) {
-        await db.query(
-          `INSERT INTO itinerary_activities (trip_stop_id, activity_id, title, activity_date, start_time, end_time, order_index, cost, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [newStop.rows[0].id, act.activity_id, act.title, act.activity_date, act.start_time, act.end_time, act.order_index, act.cost, act.notes]
+      const newStopId = newStopRes.rows[0].id;
+
+      // 5. Fetch and clone all itinerary activities for this stop
+      const actsRes = await client.query(
+        'SELECT * FROM itinerary_activities WHERE trip_stop_id = $1 ORDER BY order_index ASC',
+        [stop.id]
+      );
+
+      for (const act of actsRes.rows) {
+        await client.query(
+          `INSERT INTO itinerary_activities (trip_stop_id, activity_id, title, activity_date, start_time, end_time, order_index, cost, notes, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [
+            newStopId,
+            act.activity_id,
+            act.title,
+            act.activity_date,
+            act.start_time,
+            act.end_time,
+            act.order_index,
+            act.cost,
+            act.notes,
+            act.status || 'planned'
+          ]
         );
       }
     }
+
+    // 6. Commit transaction
+    await client.query('COMMIT');
 
     return res.status(201).json({
       newTripId
     });
   } catch (err) {
+    if (client) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackErr) {
+        console.error('Rollback error:', rollbackErr);
+      }
+    }
     next(err);
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 });
 
