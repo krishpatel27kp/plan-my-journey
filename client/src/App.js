@@ -8,15 +8,30 @@ import { renderNavbar } from './components/Navbar.js';
 import { renderAuthView } from './components/AuthView.js';
 import { renderDashboard } from './components/Dashboard.js';
 import { renderProfile } from './components/Profile.js';
+import { renderPublicShareView } from './components/PublicShareView.js';
 
 export function createApp() {
   const root = document.getElementById('app');
 
   let currentUser = getUser();
   let activeTab = 'dashboard';
-  let isAuthModalOpen = !isAuthenticated();
+  let shareToken = checkShareRoute();
+  let isAuthModalOpen = !isAuthenticated() && !shareToken;
   let authMode = 'login';
   let notification = null;
+
+  function checkShareRoute() {
+    const path = window.location.pathname;
+    const searchParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+
+    const sharePathMatch = path.match(/^\/share\/([a-zA-Z0-9_-]+)/);
+    if (sharePathMatch) return sharePathMatch[1];
+    if (searchParams.get('share')) return searchParams.get('share');
+    const hashMatch = hash.match(/^#\/?share\/([a-zA-Z0-9_-]+)/);
+    if (hashMatch) return hashMatch[1];
+    return null;
+  }
 
   // Listen for 401 Unauthorized events from api.js
   window.addEventListener('auth:unauthorized', (event) => {
@@ -108,7 +123,17 @@ export function createApp() {
     const mainContent = document.createElement('main');
     mainContent.style.flex = '1';
 
-    if (isAuthenticated() && currentUser) {
+    if (shareToken) {
+      mainContent.appendChild(renderPublicShareView({
+        shareToken,
+        onBack: () => {
+          window.history.pushState({}, '', '/');
+          shareToken = null;
+          isAuthModalOpen = !isAuthenticated();
+          render();
+        }
+      }));
+    } else if (isAuthenticated() && currentUser) {
       if (activeTab === 'dashboard') {
         mainContent.appendChild(renderDashboard({
           user: currentUser,
