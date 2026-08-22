@@ -1,164 +1,263 @@
-# plan-my-journey
+# 🗺️ Plan My Journey
 
-A collaborative trip planning web application built during a team hackathon. Plan trips, build day-by-day itineraries, track budgets, discover cities & activities, and share your plans with friends.
+A full-stack travel planning web application. Build multi-city itineraries, track budgets in Indian Rupees (₹), discover destinations, and share trips with friends — all in one modern, mobile-responsive interface.
 
 ---
 
-## Getting Started
+## ✨ Features
+
+| Feature | Details |
+|---|---|
+| **Auth** | Email/password signup + Google OAuth, JWT sessions |
+| **Dashboard** | Upcoming trips at a glance with budget progress |
+| **Trip Builder** | Create trips with title, travel dates, and total budget |
+| **Timeline View** | Connected vertical route ribbon with city stops, activities, and landmark photos |
+| **Budget & Analysis** | Real-time budget vs. spent, daily average, category breakdown (Transport / Lodging / Food / Activities), per-destination bars |
+| **Add Destinations** | Curated city catalog (Goa, Jaipur, Manali, Paris, Tokyo…) with ₹ cost-per-day, search, and category filters |
+| **Add Activities** | Log scheduled activities to any stop with time, cost, and category |
+| **Expense Tracking** | Manually add expenses per trip; auto-reflected in budget analysis |
+| **Trip Sharing** | Generate a public read-only share link (no login required to view) |
+| **Copy Trip** | Authenticated users can copy a shared trip into their own account |
+| **Responsive** | Works on desktop and mobile |
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - **Node.js** ≥ 18
-- **PostgreSQL** ≥ 15 (or any PG-compatible database)
+- **PostgreSQL** ≥ 15
 
-### Setup
+### 1 — Clone & install
 
 ```bash
-# 1. Clone the repo
 git clone https://github.com/krishpatel27kp/plan-my-journey.git
 cd plan-my-journey
-
-# 2. Create your local .env from the template
-cp .env.example .env
-# Fill in DATABASE_URL and any other values
-
-# 3. Install dependencies
 npm install
+cd client && npm install && cd ..
+```
 
-# 4. Run the database schema
+### 2 — Configure environment
+
+```bash
+cp .env.example .env
+# Open .env and fill in DATABASE_URL and JWT_SECRET at minimum
+```
+
+### 3 — Initialise the database
+
+```bash
 psql $DATABASE_URL -f database/schema.sql
+```
 
-# 5. (Optional) Seed city & activity data — owned by Pillar C
+### 4 — (Optional) Seed city & activity data
+
+```bash
 node server/seed/seedCities.js
+```
 
-# 6. Start the dev server
+### 5 — Start both servers
+
+```bash
+# Backend (port 5000)
 npm run dev
+
+# Frontend (new terminal — port 5173 or next available)
+npm run dev --prefix client
 ```
 
-The server runs on `http://localhost:5000` by default.
+Open **`http://localhost:5173`** (or whichever port Vite picks) in your browser.
+
+> **Note**: The frontend automatically detects `localhost` and routes API calls to `http://localhost:5000/api` — no manual configuration needed.
 
 ---
 
-## Project Structure
+## 🗂️ Project Structure
 
 ```
-client/              — Frontend (Vite + React)
-server/              — Backend (Express)
-  ├── middleware/     — Auth (JWT verification), error handler
-  ├── routes/         — Route handlers by domain
-  ├── services/       — Business logic (budget calculations, etc.)
-  ├── seed/           — Seed scripts (Pillar C)
-  ├── app.js          — Express app setup & route mounting
-  ├── db.js           — PostgreSQL connection pool
-  └── index.js        — Server entrypoint
-database/            — SQL schema and migrations
-  └── schema.sql      — Full database schema (all pillars)
-tests/               — Automated test suites
+plan-my-journey/
+├── client/                   # Frontend (Vite, Vanilla JS)
+│   ├── src/
+│   │   ├── api.js            # API client (JWT, fetch wrapper)
+│   │   ├── auth.js           # Token storage helpers
+│   │   ├── App.js            # App root & client-side routing
+│   │   └── components/
+│   │       ├── Dashboard.js        # Dashboard with trip cards
+│   │       ├── ItineraryBuilder.js # Timeline + Budget views
+│   │       ├── AddCityModal.js     # Destination catalog modal
+│   │       ├── AddActivityModal.js # Add activity to a stop
+│   │       └── SharedTrip.js       # Public share view
+│   └── index.html
+│
+├── server/                   # Backend (Express)
+│   ├── middleware/
+│   │   └── auth.js           # JWT verification middleware
+│   ├── models/               # DB model classes (Trip, TripStop, User…)
+│   ├── routes/
+│   │   ├── auth.js           # POST /auth/register, /auth/login, /auth/google
+│   │   ├── trips.js          # Trip CRUD, stops, budget, expenses
+│   │   ├── cities.js         # City & activity search
+│   │   ├── public.js         # Public share view (no auth)
+│   │   ├── share.js          # Share & copy trip
+│   │   ├── stopActivities.js # Add/remove activities on stops
+│   │   └── users.js          # /users/me profile
+│   ├── utils/
+│   │   ├── auth.js           # JWT sign/verify
+│   │   └── tripValidation.js # Request body validators
+│   ├── seed/
+│   │   └── seedCities.js     # Seed script for cities & activities
+│   ├── db.js                 # PostgreSQL connection pool
+│   ├── app.js                # Express app setup & route mounting
+│   └── index.js              # Server entrypoint
+│
+├── database/
+│   └── schema.sql            # Full DB schema (all tables)
+│
+└── .env.example              # Environment variable template
 ```
 
 ---
 
-## Database Schema
+## 🗄️ Database Schema
 
-All tables are defined in [`database/schema.sql`](database/schema.sql), organized by pillar.
+All tables are defined in [`database/schema.sql`](database/schema.sql).
 
-| Table                   | Owner    | Description                                     |
-|-------------------------|----------|-------------------------------------------------|
-| `users`                 | Pillar A | User accounts & auth credentials                |
-| `trips`                 | Pillar B | User trips with title, dates, budget            |
-| `trip_stops`            | Pillar B | Ordered city stops within a trip                 |
-| `itinerary_activities`  | Pillar B | Scheduled activities within a stop               |
-| `expenses`              | Pillar B | Categorized expenses for a trip                  |
-| `cities`                | Pillar C | City catalog (name, country, region, cost index) |
-| `activities`            | Pillar C | Activity catalog per city                        |
-| `shares`                | Pillar C | Share tokens for public trip viewing             |
+| Table | Description |
+|---|---|
+| `users` | User accounts & hashed credentials |
+| `trips` | Trips with title, dates, budget (₹), status |
+| `trip_stops` | Ordered city stops within a trip |
+| `itinerary_activities` | Scheduled activities per stop (time, cost, category) |
+| `expenses` | Manually-logged expenses per trip |
+| `cities` | City catalog (name, country, region, cost index) |
+| `activities` | Activity catalog per city |
+| `shares` | Share tokens for public trip viewing |
 
 ---
 
-## API Contracts
+## 🔌 API Reference
 
-All endpoints are prefixed with `/api`. Authenticated endpoints require `Authorization: Bearer <token>`.
+All endpoints are prefixed with `/api`. Authenticated endpoints require:
+```
+Authorization: Bearer <jwt_token>
+```
 
-### Standard Error Shape (all endpoints)
+### Standard error shape
 
 ```json
 { "error": { "code": "VALIDATION_ERROR", "message": "Human readable message" } }
 ```
 
-### Pillar A — User & Auth
+### Auth
 
-| Method | Endpoint              | Auth | Description          |
-|--------|-----------------------|------|----------------------|
-| POST   | `/api/auth/register`  | No   | Register new user    |
-| POST   | `/api/auth/login`     | No   | Login, receive JWT   |
-| GET    | `/api/users/me`       | Yes  | Get current profile  |
-| PUT    | `/api/users/me`       | Yes  | Update profile       |
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | No | Register with email + password |
+| POST | `/api/auth/login` | No | Login, receive JWT |
+| POST | `/api/auth/google` | No | Google OAuth sign-in |
+| GET | `/api/users/me` | Yes | Get current user profile |
+| PUT | `/api/users/me` | Yes | Update profile |
 
-### Pillar B — Itinerary & Trip Core
+### Trips & Itinerary
 
-| Method | Endpoint                              | Auth | Description                      |
-|--------|---------------------------------------|------|----------------------------------|
-| POST   | `/api/trips`                          | Yes  | Create a new trip                |
-| GET    | `/api/trips`                          | Yes  | List user's trips                |
-| GET    | `/api/trips/:id`                      | Yes  | Get trip with stops & activities |
-| PUT    | `/api/trips/:id`                      | Yes  | Update trip                      |
-| DELETE | `/api/trips/:id`                      | Yes  | Delete trip                      |
-| POST   | `/api/trips/:tripId/stops`            | Yes  | Add stop to trip                 |
-| PUT    | `/api/stops/:stopId`                  | Yes  | Update stop                      |
-| DELETE | `/api/stops/:stopId`                  | Yes  | Delete stop                      |
-| PUT    | `/api/trips/:tripId/stops/reorder`    | Yes  | Reorder stops                    |
-| POST   | `/api/stops/:stopId/activities`       | Yes  | Add activity to stop             |
-| DELETE | `/api/itinerary-activities/:id`       | Yes  | Remove activity from itinerary   |
-| GET    | `/api/trips/:tripId/budget`           | Yes  | Get budget breakdown             |
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/trips` | Yes | Create a new trip |
+| GET | `/api/trips` | Yes | List user's trips |
+| GET | `/api/trips/:id` | Yes | Get trip with stops & activities |
+| PUT | `/api/trips/:id` | Yes | Update trip |
+| DELETE | `/api/trips/:id` | Yes | Delete trip |
+| POST | `/api/trips/:tripId/stops` | Yes | Add destination stop (`cityName` required; dates optional) |
+| DELETE | `/api/stops/:stopId` | Yes | Remove a stop |
+| PUT | `/api/trips/:tripId/stops/reorder` | Yes | Reorder stops |
+| POST | `/api/stops/:stopId/activities` | Yes | Add activity to a stop |
+| DELETE | `/api/itinerary-activities/:id` | Yes | Remove activity |
+| GET | `/api/trips/:tripId/budget` | Yes | Live budget breakdown (category + destination) |
+| POST | `/api/trips/:tripId/expenses` | Yes | Log a manual expense |
 
-### Pillar C — Discovery, Sharing & Integrations
+### Discovery & Sharing
 
-| Method | Endpoint                           | Auth | Description                     |
-|--------|------------------------------------|------|---------------------------------|
-| GET    | `/api/cities`                      | No   | Search/list cities              |
-| GET    | `/api/cities/:cityId/activities`   | No   | List activities for a city      |
-| POST   | `/api/trips/:tripId/share`         | Yes  | Generate share token            |
-| GET    | `/api/public/trips/:shareToken`    | No   | View shared trip (read-only)    |
-| POST   | `/api/trips/:shareToken/copy`      | Yes  | Copy a shared trip              |
-
----
-
-## Environment Variables
-
-Copy `.env.example` to `.env` and fill in your values. **Never commit `.env`.**
-
-| Variable              | Required | Default                    | Description                    |
-|-----------------------|----------|----------------------------|--------------------------------|
-| `DATABASE_URL`        | Yes      | —                          | PostgreSQL connection string   |
-| `PORT`                | No       | `5000`                     | Server port                    |
-| `CLIENT_URL`          | No       | `http://localhost:5173`    | Frontend URL (CORS)            |
-| `NODE_ENV`            | No       | `development`              | Environment mode               |
-| `JWT_SECRET`          | Yes (A)  | —                          | JWT signing secret             |
-| `JWT_EXPIRES_IN`      | No       | `1h`                       | JWT expiration                 |
-| `PUBLIC_APP_BASE_URL` | No (C)   | `http://localhost:5173`    | Base URL for share links       |
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/cities` | No | Search / list cities |
+| GET | `/api/cities/:cityId/activities` | No | Activities for a city |
+| POST | `/api/trips/:tripId/share` | Yes | Generate public share link |
+| GET | `/api/public/trips/:shareToken` | No | View shared trip (read-only) |
+| POST | `/api/trips/:shareToken/copy` | Yes | Copy shared trip to own account |
 
 ---
 
-## Team & Git Workflow
+## ⚙️ Environment Variables
+
+Copy `.env.example` → `.env`. **Never commit `.env`.**
+
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `DATABASE_URL` | ✅ | — | PostgreSQL connection string |
+| `JWT_SECRET` | ✅ | — | JWT signing secret (use a long random string) |
+| `PORT` | No | `5000` | Backend server port |
+| `CLIENT_URL` | No | `http://localhost:5173` | Frontend URL (used for CORS) |
+| `NODE_ENV` | No | `development` | `development` or `production` |
+| `JWT_EXPIRES_IN` | No | `8h` | JWT token expiry |
+| `GOOGLE_CLIENT_ID` | No | — | Google OAuth client ID (for Google sign-in) |
+| `PUBLIC_APP_BASE_URL` | No | `http://localhost:5173` | Base URL embedded in share links |
+
+---
+
+## 🧪 Running Tests
+
+```bash
+# From project root
+npm test
+```
+
+Tests live in `server/test/` and cover route protection, auth flows, and validation.
+
+---
+
+## 📱 Key UX Flows
+
+### Creating a New Trip
+1. Click **"Plan New Journey"** on the Dashboard
+2. Enter trip name, dates, and budget (₹)
+3. The **Add Destination** modal opens automatically
+4. Search and pick cities — they appear instantly in the **Timeline**
+5. Add activities to each stop; costs flow into the **Budget & Analysis** view
+
+### Budget & Analysis
+- **Total Budget** vs **Spent** vs **Remaining** — live from DB
+- **Daily Average** calculated from trip length
+- **Spend by Category** — Transport · Lodging · Food · Activities
+- **By Destination** — per-stop cost bars based on activity costs
+
+### Sharing a Trip
+1. Open any trip → click **🔗 Share**
+2. A public URL is copied to clipboard
+3. Anyone with the link can view the itinerary (no login required)
+4. Logged-in users can click **Copy Trip** to clone it to their account
+
+---
+
+## 👥 Team & Git Workflow
 
 **Branch naming:** `feature/<pillar>-<short-description>`
 
-**Commit format:** `[pillar-A|B|C] <description>`
+**Commit format:** `[pillar-A|B|C] <description>` or conventional commits
 
 **Rules:**
 1. Branch off the latest `main` before starting any feature.
 2. One feature = one branch = one PR.
-3. Rebase onto `main` before opening a PR: `git fetch origin && git rebase origin/main`.
+3. Rebase onto `main` before opening a PR: `git fetch origin && git rebase origin/main`
 4. At least one teammate reviews and approves before merge.
-5. Squash-merge into `main`.
-6. Never commit `.env` or secrets.
+5. Never commit `.env` or secrets.
 
 ---
 
-## Team Pillars
+## 🏗️ Built With
 
-| Pillar | Scope                                                            |
-|--------|------------------------------------------------------------------|
-| **A**  | Signup/Login, JWT auth, session middleware, Dashboard, Profile    |
-| **B**  | Trips, Stops, Activities, Itinerary Builder, Timeline, Budget    |
-| **C**  | City/Activity search & seed data, Share page, Copy Trip          |
+- **Frontend**: Vite, Vanilla JavaScript, CSS (no framework)
+- **Backend**: Node.js, Express.js
+- **Database**: PostgreSQL
+- **Auth**: JWT (jsonwebtoken) + Google OAuth
+- **Images**: Unsplash (free-to-use landmark photos)
