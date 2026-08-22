@@ -3,7 +3,7 @@
  * Renders read-only shared trips with connected timeline, cost breakdown, and copy actions.
  */
 
-export function renderPublicShareView({ shareToken, onBack }) {
+export function renderPublicShareView({ shareToken, onBack, onOpenAuth, onCopySuccess }) {
   const container = document.createElement('div');
   container.className = 'main-container animate-fade-in';
   container.style.maxWidth = '980px';
@@ -179,9 +179,23 @@ export function renderPublicShareView({ shareToken, onBack }) {
     cloneBtn?.addEventListener('click', async () => {
       const token = localStorage.getItem('pmj_token');
       if (!token) {
-        alert('Please sign in or create an account to copy this journey to your dashboard.');
+        if (onOpenAuth) {
+          onOpenAuth(() => {
+            // Re-trigger copy after successful auth
+            cloneTripAction();
+          });
+        } else {
+          alert('Please sign in or create an account to copy this journey to your dashboard.');
+        }
         return;
       }
+
+      await cloneTripAction();
+    });
+
+    async function cloneTripAction() {
+      const token = localStorage.getItem('pmj_token');
+      if (!token) return;
 
       const originalText = cloneBtn.textContent;
       cloneBtn.textContent = '⏳ Copying Trip...';
@@ -204,14 +218,18 @@ export function renderPublicShareView({ shareToken, onBack }) {
 
         cloneBtn.textContent = '✓ Copied to Your Account!';
         setTimeout(() => {
-          window.location.href = '/';
-        }, 1200);
+          if (onCopySuccess) {
+            onCopySuccess(data.newTripId);
+          } else {
+            window.location.href = '/';
+          }
+        }, 1000);
       } catch (err) {
         alert('Copy error: ' + err.message);
         cloneBtn.textContent = originalText;
         cloneBtn.disabled = false;
       }
-    });
+    }
   }
 
   fetchTrip();

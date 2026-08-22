@@ -35,7 +35,7 @@ export function renderCityActivitiesModal({ city, onClose }) {
   modalOverlay.innerHTML = `
     <div class="modal" style="background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); width: 100%; maxWidth: 850px; maxHeight: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8);">
       <div style="position: relative; height: 180px; display: flex; align-items: flex-end; padding: 1.5rem; overflow: hidden;">
-        <img src="${escapeHtml(city.imageUrl || '')}" alt="${escapeHtml(city.name)}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.65);" />
+        <img src="${escapeHtml(city.imageUrl || '')}" alt="${escapeHtml(city.name)}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.65);" />
         <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, #131b2e 10%, rgba(19, 27, 46, 0.3) 60%, rgba(0,0,0,0.5) 100%);"></div>
         <button style="position: absolute; top: 1rem; right: 1rem; width: 36px; height: 36px; border-radius: 50%; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.15); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; font-size: 1.1rem;" id="btn-close-modal">✕</button>
         <div style="position: relative; z-index: 2;">

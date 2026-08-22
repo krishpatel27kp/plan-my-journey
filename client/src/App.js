@@ -20,6 +20,7 @@ export function createApp() {
   let isAuthModalOpen = false;
   let authMode = 'login';
   let notification = null;
+  let pendingPostAuth = null;
 
   function checkShareRoute() {
     const path = window.location.pathname;
@@ -33,6 +34,18 @@ export function createApp() {
     if (hashMatch) return hashMatch[1];
     return null;
   }
+
+  // Handle browser back/forward and hash changes live
+  window.addEventListener('popstate', () => {
+    shareToken = checkShareRoute();
+    activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'explore');
+    render();
+  });
+  window.addEventListener('hashchange', () => {
+    shareToken = checkShareRoute();
+    activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'explore');
+    render();
+  });
 
   // Listen for 401 Unauthorized events from api.js
   window.addEventListener('auth:unauthorized', (event) => {
@@ -81,8 +94,15 @@ export function createApp() {
   function handleAuthSuccess(user) {
     currentUser = user;
     isAuthModalOpen = false;
-    activeTab = 'dashboard';
-    render();
+    if (pendingPostAuth) {
+      const cb = pendingPostAuth;
+      pendingPostAuth = null;
+      render();
+      cb();
+    } else {
+      activeTab = 'dashboard';
+      render();
+    }
   }
 
   function render() {
@@ -97,6 +117,7 @@ export function createApp() {
       onOpenAuth: () => {
         isAuthModalOpen = true;
         authMode = 'login';
+        pendingPostAuth = null;
         render();
       }
     });
@@ -132,6 +153,18 @@ export function createApp() {
           window.history.pushState({}, '', '/');
           shareToken = null;
           activeTab = 'explore';
+          render();
+        },
+        onOpenAuth: (postAuthCallback) => {
+          pendingPostAuth = postAuthCallback;
+          isAuthModalOpen = true;
+          authMode = 'login';
+          render();
+        },
+        onCopySuccess: () => {
+          shareToken = null;
+          activeTab = 'dashboard';
+          window.history.pushState({}, '', '/');
           render();
         }
       }));

@@ -193,7 +193,7 @@ export function renderCitySearch() {
 
         spotlightCard.innerHTML = `
           <div style="position: relative; flex: 1.3; min-height: 280px; overflow: hidden;">
-            <img src="${escapeHtml(featured.imageUrl || '')}" alt="${escapeHtml(featured.name)}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease;" class="spotlight-img" />
+            <img src="${escapeHtml(featured.imageUrl || '')}" alt="${escapeHtml(featured.name)}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease;" class="spotlight-img" />
             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to right, rgba(19,27,46,0.1), rgba(19,27,46,0.85));"></div>
             
             <div style="position: absolute; top: 1rem; left: 1rem; display: flex; gap: 0.5rem;">
@@ -276,7 +276,7 @@ export function renderCitySearch() {
 
         card.innerHTML = `
           <div style="position: relative; height: 200px; overflow: hidden;">
-            <img src="${escapeHtml(city.imageUrl || '')}" alt="${escapeHtml(city.name)}" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" class="card-img" loading="lazy" />
+            <img src="${escapeHtml(city.imageUrl || '')}" alt="${escapeHtml(city.name)}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease;" class="card-img" loading="lazy" />
             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(19,27,46,0.95) 0%, rgba(19,27,46,0.2) 60%, rgba(0,0,0,0.4) 100%);"></div>
             
             <div style="position: absolute; top: 0.75rem; left: 0.75rem; right: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
