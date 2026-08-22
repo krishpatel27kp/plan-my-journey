@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Itinerary UI regression</title>
+  </head>
+  <body>
+    <output id="result">Running UI regression…</output>
+    <script type="module">
+      import { renderItineraryBuilder } from './src/components/ItineraryBuilder.js';
+
+      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+      window.fetch = async (url) => {
+        const pathname = String(url);
+        if (pathname.includes('/budget')) {
+          await sleep(500);
+          return new Response(JSON.stringify({ budget: 1000, totalSpent: 0, remaining: 1000, byCategory: {}, overBudgetDays: [] }), { status: 200 });
+        }
+        if (pathname.includes('/trips/test-trip')) {
+          await sleep(500);
+          return new Response(JSON.stringify({ id: 'test-trip', title: 'Delayed empty trip', startDate: '2026-09-01', endDate: '2026-09-02', budget: 1000, stops: [] }), { status: 200 });
+        }
+        return new Response(JSON.stringify({ error: { code: 'NOT_FOUND', message: 'Unexpected request' } }), { status: 404 });
+      };
+
+      const itinerary = renderItineraryBuilder({ tripId: 'test-trip', onBack: () => {} });
+      document.body.appendChild(itinerary);
+
+      await sleep(100);
+      const loadingVisible = itinerary.textContent.includes('Loading Itinerary...');
+      await sleep(1100);
+      const emptyStateVisible = itinerary.textContent.includes('No stops added yet');
+      document.querySelector('#result').textContent = loadingVisible && emptyStateVisible
+        ? 'PASS: delayed loading state and empty-stop state render'
+        : `FAIL: loading=${loadingVisible}, empty=${emptyStateVisible}`;
+    </script>
+  </body>
+</html>

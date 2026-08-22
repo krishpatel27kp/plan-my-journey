@@ -9,9 +9,7 @@ async function runTests() {
   const server = http.createServer(app);
   await new Promise(resolve => server.listen(0, resolve));
   const baseUrl = `http://127.0.0.1:${server.address().port}`;
-  const user = { id: crypto.randomUUID(), email: 'phase4-test@example.com' };
-  const token = generateToken(user, '1h');
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  let headers = { 'Content-Type': 'application/json' };
 
   async function request(path, method = 'GET', body) {
     const response = await fetch(`${baseUrl}${path}`, {
@@ -23,7 +21,27 @@ async function runTests() {
   }
 
   try {
-    let result = await request('/api/trips', 'POST', {
+    const email = `phase4-${crypto.randomUUID()}@example.com`;
+    let result = await request('/api/auth/register', 'POST', {
+      name: 'Phase 4 Tester', email, password: 'phase4-test-password'
+    });
+    assert.strictEqual(result.status, 201);
+    assert.ok(result.body.token, 'Registration must return a real JWT');
+    headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${result.body.token}` };
+
+    result = await request('/api/trips');
+    assert.strictEqual(result.status, 200, 'Real registration JWT must access protected trip routes');
+
+    result = await fetch(`${baseUrl}/api/trips`);
+    assert.strictEqual(result.status, 401);
+    assert.strictEqual((await result.json()).error.code, 'UNAUTHORIZED');
+
+    const expiredToken = generateToken({ id: crypto.randomUUID(), email }, '1s', Math.floor(Date.now() / 1000) - 10);
+    result = await fetch(`${baseUrl}/api/trips`, { headers: { Authorization: `Bearer ${expiredToken}` } });
+    assert.strictEqual(result.status, 401);
+    assert.strictEqual((await result.json()).error.code, 'TOKEN_EXPIRED');
+
+    result = await request('/api/trips', 'POST', {
       title: 'Phase 4 Test Trip', startDate: '2026-09-01', endDate: '2026-09-03', budget: 1000
     });
     assert.strictEqual(result.status, 201);
@@ -99,12 +117,21 @@ async function runTests() {
     assert.deepStrictEqual(tripData.stops[0].activities.map(activity => activity.startTime), ['11:00']);
     assert.deepStrictEqual(tripData.stops[1].activities.map(activity => activity.startTime), ['09:00', '14:00']);
 
+    for (const stop of tripData.stops) {
+      result = await request(`/api/stops/${stop.id}`, 'DELETE');
+      assert.strictEqual(result.status, 200);
+    }
+    tripData = (await request(`/api/trips/${trip.id}`)).body;
+    assert.deepStrictEqual(tripData.stops, []);
+
     console.log('Phase 4 itinerary/budget: PASS');
     console.log('Reorder reverse + sequential orders: PASS');
     console.log('Invalid reorder standard 400 + unchanged order: PASS');
     console.log('Budget math 1050 total, -50 remaining, exact buckets: PASS');
     console.log('Over-budget day detection: PASS');
     console.log('Timeline ordering: PASS');
+    console.log('Real registration JWT + missing/expired token handling: PASS');
+    console.log('All-stops-deleted empty itinerary data state: PASS');
   } finally {
     await new Promise(resolve => server.close(resolve));
   }

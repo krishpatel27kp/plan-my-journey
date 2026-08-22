@@ -7,7 +7,6 @@
 const assert = require('assert');
 const http = require('http');
 const app = require('../app');
-const { generateToken } = require('../utils/auth');
 const { City } = require('../models');
 
 async function runTests() {
@@ -34,12 +33,27 @@ async function runTests() {
     }
   }
 
-  // Setup test users & tokens
-  const user1 = { id: '11111111-1111-4111-8111-111111111111', email: 'alice@traveler.com' };
-  const user2 = { id: '22222222-2222-4222-8222-222222222222', email: 'bob@traveler.com' };
-
-  const token1 = generateToken(user1);
-  const token2 = generateToken(user2);
+  // Setup users through the real auth endpoints so every protected request
+  // exercises production JWT issuance and verification.
+  const registerUser = async (name) => {
+    const res = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email: `${name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}-${Math.random().toString(16).slice(2)}@traveler.test`,
+        password: 'phase1-real-auth-password'
+      })
+    });
+    assert.strictEqual(res.status, 201, `Expected registration to succeed, got ${res.status}`);
+    return res.json();
+  };
+  const registration1 = await registerUser('Alice Traveler');
+  const registration2 = await registerUser('Bob Traveler');
+  const user1 = { id: registration1.id, email: registration1.email };
+  const user2 = { id: registration2.id, email: registration2.email };
+  const token1 = registration1.token;
+  const token2 = registration2.token;
 
   let user1TripId = '';
   let user2TripId = '';
