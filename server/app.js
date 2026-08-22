@@ -234,14 +234,19 @@ try {
             if (tripRes.rows.length > 0) {
               const trip = tripRes.rows[0];
               const stopsRes = await db.query('SELECT * FROM trip_stops WHERE trip_id = $1 ORDER BY stop_order ASC', [trip.id]);
-              return res.status(200).json({
-                shareToken,
-                title: trip.title,
-                stops: stopsRes.rows.map(s => ({
+              const stops = [];
+              for (const s of stopsRes.rows) {
+                const actsRes = await db.query('SELECT title FROM itinerary_activities WHERE trip_stop_id = $1 ORDER BY order_index ASC', [s.id]);
+                const startDateStr = s.arrival_date ? (new Date(s.arrival_date).toISOString().split('T')[0]) : '';
+                stops.push({
                   city: s.city_name,
-                  startDate: s.arrival_date,
-                  activities: []
-                })),
+                  startDate: startDateStr,
+                  activities: actsRes.rows.map(a => a.title).filter(Boolean)
+                });
+              }
+              return res.status(200).json({
+                title: trip.title,
+                stops,
                 totalCost: Number(trip.budget) || 0
               });
             }
@@ -331,6 +336,15 @@ try {
               const crypto = require('crypto');
               const shareToken = crypto.randomBytes(4).toString('hex');
               const db = require('./db');
+
+              const tripCheck = await db.query('SELECT user_id FROM trips WHERE id = $1', [tripId]);
+              if (tripCheck.rows.length === 0) {
+                return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Trip not found' } });
+              }
+              if (tripCheck.rows[0].user_id !== req.user.userId) {
+                return res.status(403).json({ error: { code: 'FORBIDDEN', message: 'You do not have permission to share this trip' } });
+              }
+
               try {
                 await db.query(
                   'INSERT INTO shares (id, trip_id, share_token) VALUES ($1, $2, $3)',
@@ -340,7 +354,7 @@ try {
                 // Ignore if mock trip ID or duplicate
               }
               const baseUrl = (process.env.PUBLIC_APP_BASE_URL || 'http://localhost:5173').replace(/\/$/, '');
-              return res.status(200).json({
+              return res.status(201).json({
                 shareToken,
                 shareUrl: `${baseUrl}/share/${shareToken}`,
                 publicUrl: `${baseUrl}/share/${shareToken}`

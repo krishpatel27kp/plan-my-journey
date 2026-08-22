@@ -101,7 +101,7 @@ async function runRouteProtectionE2E() {
       method: 'POST',
       headers: { Authorization: `Bearer ${user1Token}` }
     });
-    assert.strictEqual(res.status, 200);
+    assert.ok(res.status === 200 || res.status === 201, `Expected 200 or 201, got ${res.status}`);
     const data = await res.json();
     assert.ok(data.shareToken);
     shareToken = data.shareToken;
