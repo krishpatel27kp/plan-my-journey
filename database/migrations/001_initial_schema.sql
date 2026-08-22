@@ -1,13 +1,9 @@
--- plan-my-journey database schema
--- Phase 0: Foundation Freeze — all 8 core tables defined across pillars
+-- Migration 001: Initial Schema
+-- Tables: users, trips, cities, trip_stops, activities, itinerary_activities, expenses, shares
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ============================================================
--- Pillar A — User & Auth  (owned by Teammate A)
--- Tables: users
--- ============================================================
-
+-- 1. Users Table
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -18,14 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-
-
--- ============================================================
--- Pillar C — Discovery, Sharing & Integrations  (owned by Teammate C)
--- Tables: cities, activities, shares
--- ============================================================
-
+-- 2. Cities Table
 CREATE TABLE IF NOT EXISTS cities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -38,6 +27,7 @@ CREATE TABLE IF NOT EXISTS cities (
     CONSTRAINT uq_cities_name_country UNIQUE (name, country)
 );
 
+-- 3. Activities Table
 CREATE TABLE IF NOT EXISTS activities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     city_id UUID NOT NULL REFERENCES cities(id) ON DELETE CASCADE,
@@ -49,12 +39,7 @@ CREATE TABLE IF NOT EXISTS activities (
     CONSTRAINT uq_activities_city_name UNIQUE (city_id, name)
 );
 
-
--- ============================================================
--- Pillar B — Itinerary & Trip Core  (owned by Teammate B)
--- Tables: trips, trip_stops, itinerary_activities, expenses
--- ============================================================
-
+-- 4. Trips Table
 CREATE TABLE IF NOT EXISTS trips (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -71,8 +56,7 @@ CREATE TABLE IF NOT EXISTS trips (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
-
+-- 5. Trip Stops Table
 CREATE TABLE IF NOT EXISTS trip_stops (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
@@ -86,8 +70,7 @@ CREATE TABLE IF NOT EXISTS trip_stops (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_trip_stops_trip_id ON trip_stops(trip_id);
-
+-- 6. Itinerary Activities Table
 CREATE TABLE IF NOT EXISTS itinerary_activities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trip_stop_id UUID NOT NULL REFERENCES trip_stops(id) ON DELETE CASCADE,
@@ -104,8 +87,7 @@ CREATE TABLE IF NOT EXISTS itinerary_activities (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_itinerary_activities_trip_stop_id ON itinerary_activities(trip_stop_id);
-
+-- 7. Expenses Table
 CREATE TABLE IF NOT EXISTS expenses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
@@ -119,9 +101,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_expenses_trip_id ON expenses(trip_id);
-
--- Pillar C: Shares (references trips)
+-- 8. Shares Table
 CREATE TABLE IF NOT EXISTS shares (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     trip_id UUID NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
@@ -131,5 +111,11 @@ CREATE TABLE IF NOT EXISTS shares (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
+CREATE INDEX IF NOT EXISTS idx_trip_stops_trip_id ON trip_stops(trip_id);
+CREATE INDEX IF NOT EXISTS idx_itinerary_activities_trip_stop_id ON itinerary_activities(trip_stop_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_trip_id ON expenses(trip_id);
 CREATE INDEX IF NOT EXISTS idx_shares_trip_id ON shares(trip_id);
 CREATE INDEX IF NOT EXISTS idx_shares_share_token ON shares(share_token);
