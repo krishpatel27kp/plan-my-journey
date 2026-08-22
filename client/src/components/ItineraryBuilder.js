@@ -1,5 +1,5 @@
 /**
- * Itinerary Builder Component (Hero Feature - Stitch MCP Reference)
+ * Itinerary Builder Component (Hero Feature - Light Editorial Design)
  * Supports Itinerary Day-by-Day, Connected Route Timeline, and Interactive Budget Breakdown.
  */
 import { api } from '../api.js';
@@ -105,7 +105,6 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     });
 
     const totalBudget = parseFloat(trip?.budget) || 50000;
-    // Estimated realistic breakdown
     const transportCost = Math.round(totalBudget * 0.35);
     const accommodationCost = Math.round(totalBudget * 0.40);
     const totalSpent = activityCost + transportCost + accommodationCost;
@@ -128,8 +127,8 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     if (isLoading) {
       container.innerHTML = `
         <div style="text-align: center; padding: 6rem 0;">
-          <div class="spinner" style="width: 44px; height: 44px; border: 3px solid rgba(79, 70, 229, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
-          <p style="color: var(--color-text-muted); margin-top: 1rem; font-size: 1.05rem;">Loading Itinerary...</p>
+          <div class="spinner" style="width: 44px; height: 44px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
+          <p style="color: #64748b; margin-top: 1rem; font-size: 1.05rem;">Loading Itinerary...</p>
         </div>
       `;
       return;
@@ -141,33 +140,32 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
       ? `${formatDate(trip.startDate)} – ${formatDate(trip.endDate)}`
       : 'Flexible Dates';
 
-    // Route summary string (e.g. Delhi → Jaipur → Goa)
     const routeProgression = stops.length > 0
       ? stops.map(s => escapeHtml(s.cityName)).join(' ➔ ')
       : 'No destinations added yet';
 
     container.innerHTML = `
       <!-- Top Navigation & Title Bar -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--color-border);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--color-border); padding-top: 1rem;">
         <div>
           <button class="btn btn-secondary btn-sm" id="btn-back-to-trips" style="margin-bottom: 0.75rem;">
             ← Back to Dashboard
           </button>
           
           <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-            <h1 style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 800; color: #fff;">
+            <h1 style="font-family: var(--font-heading); font-size: 2.4rem; font-weight: 900; color: #0f172a;">
               ${escapeHtml(trip.title)}
             </h1>
-            <span class="badge" style="background: rgba(79, 70, 229, 0.15); color: var(--color-primary-light); border: 1px solid rgba(79,70,229,0.3);">
+            <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); border: 1px solid rgba(37,99,235,0.2); font-weight: 700;">
               📅 ${escapeHtml(datesStr)}
             </span>
-            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.3);">
+            <span class="badge" style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; font-weight: 700;">
               📍 ${stops.length} Stops
             </span>
           </div>
 
-          <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.4rem;">
-            Route: <strong style="color: #fff;">${routeProgression}</strong>
+          <p style="color: #64748b; font-size: 0.95rem; margin-top: 0.4rem;">
+            Route: <strong style="color: #0f172a;">${routeProgression}</strong>
           </p>
         </div>
 
@@ -182,15 +180,15 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
         </div>
       </div>
 
-      <!-- Mode Switcher Tabs (Itinerary, Timeline, Budget) -->
-      <div style="display: flex; background: rgba(11, 15, 25, 0.7); padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--color-border); margin-bottom: 2rem; max-width: 480px;">
-        <button class="btn btn-sm ${activeViewMode === 'itinerary' ? 'btn-primary' : 'btn-secondary'}" id="tab-mode-itinerary" style="flex: 1; border: none;">
+      <!-- Mode Switcher Tabs -->
+      <div style="display: flex; background: #f1f5f9; padding: 4px; border-radius: var(--radius-md); border: 1px solid var(--color-border); margin-bottom: 2rem; max-width: 480px;">
+        <button class="btn btn-sm ${activeViewMode === 'itinerary' ? 'btn-primary' : 'btn-secondary'}" id="tab-mode-itinerary" style="flex: 1; border: none; font-weight: 700;">
           📌 Itinerary
         </button>
-        <button class="btn btn-sm ${activeViewMode === 'timeline' ? 'btn-primary' : 'btn-secondary'}" id="tab-mode-timeline" style="flex: 1; border: none;">
+        <button class="btn btn-sm ${activeViewMode === 'timeline' ? 'btn-primary' : 'btn-secondary'}" id="tab-mode-timeline" style="flex: 1; border: none; font-weight: 700;">
           🗺️ Route Timeline
         </button>
-        <button class="btn btn-sm ${activeViewMode === 'budget' ? 'btn-primary' : 'btn-secondary'}" id="tab-mode-budget" style="flex: 1; border: none;">
+        <button class="btn btn-sm ${activeViewMode === 'budget' ? 'btn-primary' : 'btn-secondary'}" id="tab-mode-budget" style="flex: 1; border: none; font-weight: 700;">
           💰 Budget (${financials.percentUsed}%)
         </button>
       </div>
@@ -261,28 +259,28 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
       <div style="display: grid; grid-template-columns: 1fr 340px; gap: 2rem; align-items: start;">
         
         <!-- Left / Main Area: Stops & Connected Itinerary Timeline -->
-        <div style="display: flex; flex-direction: column; gap: 2.5rem;">
+        <div style="display: flex; flex-direction: column; gap: 2rem;">
           ${stops.length === 0 ? `
             <div class="empty-state">
               <div class="empty-state-icon">📍</div>
-              <h3 style="color: #fff; margin-bottom: 0.5rem;">No stops added yet</h3>
+              <h3 style="color: #0f172a; margin-bottom: 0.5rem;">No stops added yet</h3>
               <p class="empty-state-desc">Add your first destination to start organizing activities, timings, and daily routes.</p>
               <button class="btn btn-primary btn-lg" id="btn-add-stop-empty">+ Add First City</button>
             </div>
           ` : stops.map((stop, idx) => `
-            <div class="card animate-fade-in" style="padding: 0; overflow: hidden; border: 1px solid var(--color-border); background: var(--color-surface); box-shadow: var(--shadow-sm);">
+            <div class="card animate-fade-in" style="padding: 0; overflow: hidden; border: 1px solid var(--color-border); background: #ffffff; box-shadow: var(--shadow-sm);">
               
               <!-- Stop Header Banner -->
-              <div style="padding: 1.25rem 1.5rem; background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.95)); border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <div style="padding: 1.25rem 1.5rem; background: #f8fafc; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                 <div style="display: flex; align-items: center; gap: 0.85rem;">
-                  <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem;">
+                  <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem;">
                     ${idx + 1}
                   </div>
                   <div>
-                    <h3 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1.2;">
+                    <h3 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 800; color: #0f172a; line-height: 1.2;">
                       ${escapeHtml(stop.cityName)}
                     </h3>
-                    <span style="font-size: 0.8rem; color: var(--color-text-muted);">
+                    <span style="font-size: 0.82rem; color: #64748b;">
                       ${stop.startDate ? `📅 ${formatDate(stop.startDate)} ${stop.endDate ? `– ${formatDate(stop.endDate)}` : ''}` : 'Dates flexible'}
                     </span>
                   </div>
@@ -292,7 +290,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
                   <button class="btn btn-primary btn-sm btn-add-act-stop" data-stop-id="${escapeHtml(stop.id)}">
                     + Add Activity
                   </button>
-                  <button class="btn btn-secondary btn-sm btn-delete-stop" data-stop-id="${escapeHtml(stop.id)}" title="Delete stop" style="color: #f87171; border-color: rgba(239,68,68,0.3);">
+                  <button class="btn btn-secondary btn-sm btn-delete-stop" data-stop-id="${escapeHtml(stop.id)}" title="Delete stop" style="color: #ef4444; border-color: rgba(239,68,68,0.2);">
                     🗑️
                   </button>
                 </div>
@@ -301,46 +299,46 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
               <!-- Stop Activities Timeline -->
               <div style="padding: 1.5rem;">
                 ${(!stop.activities || stop.activities.length === 0) ? `
-                  <div style="text-align: center; padding: 2rem 1rem; background: rgba(11,15,25,0.4); border-radius: var(--radius-md); border: 1px dashed var(--color-border);">
-                    <p style="color: var(--color-text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">No activities scheduled in ${escapeHtml(stop.cityName)} yet.</p>
+                  <div style="text-align: center; padding: 2rem 1rem; background: #f8fafc; border-radius: var(--radius-md); border: 1px dashed var(--color-border);">
+                    <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 0.75rem;">No activities scheduled in ${escapeHtml(stop.cityName)} yet.</p>
                     <button class="btn btn-secondary btn-sm btn-add-act-stop" data-stop-id="${escapeHtml(stop.id)}">+ Add Activity</button>
                   </div>
                 ` : `
                   <div style="position: relative; padding-left: 1.75rem;">
                     <!-- Timeline Track Line -->
-                    <div style="position: absolute; left: 14px; top: 12px; bottom: 12px; width: 2px; background: linear-gradient(to bottom, var(--color-primary), rgba(255,255,255,0.1));"></div>
+                    <div style="position: absolute; left: 14px; top: 12px; bottom: 12px; width: 2px; background: linear-gradient(to bottom, var(--color-primary), #e2e8f0);"></div>
 
-                    <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div style="display: flex; flex-direction: column; gap: 1rem;">
                       ${stop.activities.map(act => {
                         const costDisplay = act.cost > 0 ? `₹${parseFloat(act.cost).toLocaleString('en-IN')}` : 'Free';
                         return `
                           <div style="position: relative;" class="animate-fade-in">
                             <!-- Timeline node dot -->
-                            <div style="position: absolute; left: -1.75rem; top: 1rem; width: 12px; height: 12px; border-radius: 50%; background: var(--color-primary); border: 2px solid var(--color-bg); z-index: 2;"></div>
+                            <div style="position: absolute; left: -1.75rem; top: 1rem; width: 12px; height: 12px; border-radius: 50%; background: var(--color-primary); border: 2px solid #ffffff; box-shadow: 0 0 6px rgba(37,99,235,0.4); z-index: 2;"></div>
 
-                            <div class="card" style="padding: 1rem 1.25rem; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                            <div class="card" style="padding: 1rem 1.25rem; background: #ffffff; border: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; box-shadow: var(--shadow-sm);">
                               <div style="display: flex; align-items: center; gap: 1rem;">
-                                <div style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 700; color: var(--color-primary-light); min-width: 55px;">
+                                <div style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: var(--color-primary); min-width: 55px;">
                                   ${escapeHtml(act.startTime || '09:00')}
                                 </div>
                                 <div>
                                   <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.2rem;">
-                                    <span class="badge" style="background: rgba(79,70,229,0.15); color: var(--color-primary-light); font-size: 0.7rem;">
+                                    <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); font-size: 0.72rem; font-weight: 700;">
                                       ${escapeHtml(act.category || 'Sightseeing')}
                                     </span>
-                                    <span style="font-size: 0.75rem; color: var(--color-text-subtle);">⏱️ ${escapeHtml(act.duration || '2 hours')}</span>
+                                    <span style="font-size: 0.75rem; color: #64748b;">⏱️ ${escapeHtml(act.duration || '2 hours')}</span>
                                   </div>
-                                  <h4 style="font-family: var(--font-heading); font-size: 1.05rem; font-weight: 700; color: #fff;">
+                                  <h4 style="font-family: var(--font-heading); font-size: 1.05rem; font-weight: 800; color: #0f172a;">
                                     ${escapeHtml(act.title)}
                                   </h4>
                                 </div>
                               </div>
 
                               <div style="display: flex; align-items: center; gap: 1rem;">
-                                <span style="font-weight: 700; color: ${act.cost > 0 ? '#34d399' : '#38bdf8'}; font-size: 1rem;">
+                                <span style="font-weight: 800; color: ${act.cost > 0 ? '#059669' : '#0284c7'}; font-size: 1rem;">
                                   ${costDisplay}
                                 </span>
-                                <button class="btn btn-secondary btn-sm btn-delete-act" data-stop-id="${escapeHtml(stop.id)}" data-act-id="${escapeHtml(act.id)}" style="color: #f87171; padding: 0.25rem 0.5rem; font-size: 0.8rem;" title="Remove activity">✕</button>
+                                <button class="btn btn-secondary btn-sm btn-delete-act" data-stop-id="${escapeHtml(stop.id)}" data-act-id="${escapeHtml(act.id)}" style="color: #ef4444; padding: 0.25rem 0.5rem; font-size: 0.8rem;" title="Remove activity">✕</button>
                               </div>
                             </div>
                           </div>
@@ -355,57 +353,57 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
           `).join('')}
         </div>
 
-        <!-- Right Sidebar: Trip Summary & Budget Meter -->
+        <!-- Right Sidebar -->
         <aside style="display: flex; flex-direction: column; gap: 1.5rem; position: sticky; top: 80px;">
           <!-- Budget Meter Card -->
-          <div class="card" style="padding: 1.5rem; background: var(--color-surface); border: 1px solid var(--color-border);">
+          <div class="card" style="padding: 1.5rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-              <span style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: var(--color-text-muted);">Trip Budget</span>
-              <span class="badge" style="background: ${financials.isOverBudget ? 'var(--color-danger-bg)' : 'var(--color-success-bg)'}; color: ${financials.isOverBudget ? '#f87171' : '#34d399'};">
+              <span style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #64748b;">Trip Budget</span>
+              <span class="badge" style="background: ${financials.isOverBudget ? 'var(--color-danger-bg)' : 'var(--color-success-bg)'}; color: ${financials.isOverBudget ? '#ef4444' : '#059669'}; font-weight: 700;">
                 ${financials.percentUsed}% Used
               </span>
             </div>
 
-            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; color: #fff; margin-bottom: 0.25rem;">
+            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; color: #0f172a; margin-bottom: 0.25rem;">
               ₹${financials.totalSpent.toLocaleString('en-IN')}
-              <span style="font-size: 0.95rem; font-weight: 500; color: var(--color-text-muted);">/ ₹${financials.totalBudget.toLocaleString('en-IN')}</span>
+              <span style="font-size: 0.95rem; font-weight: 500; color: #64748b;">/ ₹${financials.totalBudget.toLocaleString('en-IN')}</span>
             </div>
 
             <!-- Progress Bar -->
-            <div style="height: 8px; border-radius: var(--radius-full); background: rgba(255,255,255,0.08); overflow: hidden; margin: 1rem 0;">
-              <div style="width: ${financials.percentUsed}%; height: 100%; background: ${financials.isOverBudget ? 'var(--color-danger)' : 'var(--color-success)'}; border-radius: var(--radius-full); transition: width 0.4s ease;"></div>
+            <div style="height: 8px; border-radius: var(--radius-full); background: #e2e8f0; overflow: hidden; margin: 1rem 0;">
+              <div style="width: ${financials.percentUsed}%; height: 100%; background: ${financials.isOverBudget ? '#ef4444' : '#10b981'}; border-radius: var(--radius-full); transition: width 0.4s ease;"></div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--color-text-muted);">
-              <span>Remaining: <strong style="color: ${financials.remaining < 0 ? '#f87171' : '#34d399'};">₹${Math.max(0, financials.remaining).toLocaleString('en-IN')}</strong></span>
-              <span>Activities: <strong>₹${financials.activityCost.toLocaleString('en-IN')}</strong></span>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: #64748b;">
+              <span>Remaining: <strong style="color: ${financials.remaining < 0 ? '#ef4444' : '#059669'};">₹${Math.max(0, financials.remaining).toLocaleString('en-IN')}</strong></span>
+              <span>Activities: <strong style="color: #0f172a;">₹${financials.activityCost.toLocaleString('en-IN')}</strong></span>
             </div>
 
             ${financials.isOverBudget ? `
-              <div style="margin-top: 1rem; padding: 0.6rem 0.85rem; background: rgba(239,68,68,0.12); border-radius: var(--radius-md); border: 1px solid rgba(239,68,68,0.3); font-size: 0.8rem; color: #f87171;">
+              <div style="margin-top: 1rem; padding: 0.6rem 0.85rem; background: #fef2f2; border-radius: var(--radius-md); border: 1px solid #fecaca; font-size: 0.82rem; color: #ef4444; font-weight: 600;">
                 ⚠️ Estimated spending exceeds total budget.
               </div>
             ` : ''}
           </div>
 
-          <!-- Quick Actions & Highlights -->
-          <div class="card" style="padding: 1.5rem; background: var(--color-surface); border: 1px solid var(--color-border);">
-            <h4 style="font-family: var(--font-heading); font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 1rem;">
+          <!-- Quick Summary Card -->
+          <div class="card" style="padding: 1.5rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
+            <h4 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem;">
               Itinerary Summary
             </h4>
 
-            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.88rem;">
-              <div style="display: flex; justify-content: space-between; color: var(--color-text-muted);">
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.9rem;">
+              <div style="display: flex; justify-content: space-between; color: #64748b;">
                 <span>Total Destinations</span>
-                <span style="color: #fff; font-weight: 600;">${stops.length} Cities</span>
+                <span style="color: #0f172a; font-weight: 700;">${stops.length} Cities</span>
               </div>
-              <div style="display: flex; justify-content: space-between; color: var(--color-text-muted);">
+              <div style="display: flex; justify-content: space-between; color: #64748b;">
                 <span>Total Activities</span>
-                <span style="color: #fff; font-weight: 600;">${stops.reduce((acc, s) => acc + (s.activities?.length || 0), 0)} Scheduled</span>
+                <span style="color: #0f172a; font-weight: 700;">${stops.reduce((acc, s) => acc + (s.activities?.length || 0), 0)} Scheduled</span>
               </div>
             </div>
 
-            <button class="btn btn-secondary" id="btn-add-stop-sidebar" style="width: 100%; margin-top: 1.25rem; justify-content: center;">
+            <button class="btn btn-secondary" id="btn-add-stop-sidebar" style="width: 100%; margin-top: 1.25rem; justify-content: center; font-weight: 700;">
               + Add Another City
             </button>
           </div>
@@ -417,54 +415,54 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
 
   function renderTimelineView(stops, financials) {
     return `
-      <div class="card animate-fade-in" style="padding: 2rem; background: var(--color-surface); border: 1px solid var(--color-border);">
-        <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">
+      <div class="card animate-fade-in" style="padding: 2rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
+        <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem;">
           🗺️ Visual Route Timeline
         </h2>
-        <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-bottom: 2rem;">
+        <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 2rem;">
           Step-by-step route progression across scheduled cities and planned activity blocks.
         </p>
 
         <!-- Route Nodes Ribbon -->
-        <div style="display: flex; align-items: center; gap: 1rem; overflow-x: auto; padding: 1.5rem; background: rgba(11,15,25,0.7); border-radius: var(--radius-lg); border: 1px solid var(--color-border); margin-bottom: 2.5rem;">
+        <div style="display: flex; align-items: center; gap: 1rem; overflow-x: auto; padding: 1.5rem; background: #f8fafc; border-radius: var(--radius-lg); border: 1px solid var(--color-border); margin-bottom: 2.5rem;">
           ${stops.map((stop, idx) => `
             <div style="display: flex; align-items: center; gap: 1rem; flex-shrink: 0;">
               <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(79,70,229,0.4);">
+                <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-primary); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.3); font-size: 1rem;">
                   ${idx + 1}
                 </div>
-                <span style="font-weight: 700; color: #fff; font-size: 0.95rem; margin-top: 0.4rem;">${escapeHtml(stop.cityName)}</span>
-                <span style="font-size: 0.75rem; color: var(--color-text-muted);">${stop.activities?.length || 0} Activities</span>
+                <span style="font-weight: 800; color: #0f172a; font-size: 0.95rem; margin-top: 0.5rem;">${escapeHtml(stop.cityName)}</span>
+                <span style="font-size: 0.78rem; color: #64748b;">${stop.activities?.length || 0} Activities</span>
               </div>
-              ${idx < stops.length - 1 ? `<span style="font-size: 1.4rem; color: var(--color-primary-light); opacity: 0.7;">➔</span>` : ''}
+              ${idx < stops.length - 1 ? `<span style="font-size: 1.4rem; color: var(--color-primary); font-weight: 800;">➔</span>` : ''}
             </div>
           `).join('')}
         </div>
 
         <!-- Detailed Chronological Timeline -->
-        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
           ${stops.map((stop, idx) => `
-            <div style="padding: 1.25rem 1.5rem; background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-md);">
+            <div style="padding: 1.25rem 1.5rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3 style="font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700; color: #fff;">
+                <h3 style="font-family: var(--font-heading); font-size: 1.2rem; font-weight: 800; color: #0f172a;">
                   📍 Stop ${idx + 1}: ${escapeHtml(stop.cityName)}
                 </h3>
-                <span class="badge" style="background: rgba(79,70,229,0.15); color: var(--color-primary-light);">
+                <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); font-weight: 700;">
                   ${stop.startDate ? formatDate(stop.startDate) : 'Day ' + (idx + 1)}
                 </span>
               </div>
 
               ${(!stop.activities || stop.activities.length === 0) ? `
-                <p style="font-size: 0.85rem; color: var(--color-text-subtle); font-style: italic;">No specific activities scheduled for this date.</p>
+                <p style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">No specific activities scheduled for this date.</p>
               ` : `
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem;">
                   ${stop.activities.map(act => `
-                    <div style="background: rgba(11,15,25,0.8); padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="background: #f8fafc; padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center;">
                       <div>
-                        <span style="font-size: 0.75rem; color: var(--color-primary-light); font-weight: 600;">${escapeHtml(act.startTime || '10:00')}</span>
-                        <h5 style="font-weight: 600; color: #fff; font-size: 0.92rem;">${escapeHtml(act.title)}</h5>
+                        <span style="font-size: 0.75rem; color: var(--color-primary); font-weight: 700;">${escapeHtml(act.startTime || '10:00')}</span>
+                        <h5 style="font-weight: 700; color: #0f172a; font-size: 0.92rem;">${escapeHtml(act.title)}</h5>
                       </div>
-                      <span style="font-weight: 700; color: #34d399; font-size: 0.85rem;">
+                      <span style="font-weight: 800; color: #059669; font-size: 0.85rem;">
                         ${act.cost > 0 ? `₹${parseFloat(act.cost).toLocaleString('en-IN')}` : 'Free'}
                       </span>
                     </div>
@@ -480,40 +478,40 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
 
   function renderBudgetView(stops, financials) {
     return `
-      <div class="card animate-fade-in" style="padding: 2rem; background: var(--color-surface); border: 1px solid var(--color-border);">
-        <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">
+      <div class="card animate-fade-in" style="padding: 2rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
+        <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem;">
           💰 Trip Budget & Expense Tracking
         </h2>
-        <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-bottom: 2rem;">
+        <p style="color: #64748b; font-size: 0.95rem; margin-bottom: 2rem;">
           Real-time expense allocation by category, destination, and activity.
         </p>
 
         <!-- Top Financial KPIs -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2.5rem;">
-          <div class="card" style="padding: 1.25rem; background: rgba(15,23,42,0.8); border: 1px solid var(--color-border);">
-            <span style="font-size: 0.8rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 600;">Total Budget</span>
-            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 0.25rem;">
+          <div class="card" style="padding: 1.25rem; background: #ffffff; border: 1px solid var(--color-border);">
+            <span style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Total Budget</span>
+            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; color: #0f172a; margin-top: 0.25rem;">
               ₹${financials.totalBudget.toLocaleString('en-IN')}
             </div>
           </div>
 
-          <div class="card" style="padding: 1.25rem; background: rgba(15,23,42,0.8); border: 1px solid var(--color-border);">
-            <span style="font-size: 0.8rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 600;">Total Spent</span>
-            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; color: #38bdf8; margin-top: 0.25rem;">
+          <div class="card" style="padding: 1.25rem; background: #ffffff; border: 1px solid var(--color-border);">
+            <span style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Total Spent</span>
+            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; color: #0284c7; margin-top: 0.25rem;">
               ₹${financials.totalSpent.toLocaleString('en-IN')}
             </div>
           </div>
 
-          <div class="card" style="padding: 1.25rem; background: rgba(15,23,42,0.8); border: 1px solid var(--color-border);">
-            <span style="font-size: 0.8rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 600;">Remaining Budget</span>
-            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; color: ${financials.remaining < 0 ? '#f87171' : '#34d399'}; margin-top: 0.25rem;">
+          <div class="card" style="padding: 1.25rem; background: #ffffff; border: 1px solid var(--color-border);">
+            <span style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Remaining Budget</span>
+            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; color: ${financials.remaining < 0 ? '#ef4444' : '#059669'}; margin-top: 0.25rem;">
               ₹${Math.max(0, financials.remaining).toLocaleString('en-IN')}
             </div>
           </div>
 
-          <div class="card" style="padding: 1.25rem; background: rgba(15,23,42,0.8); border: 1px solid var(--color-border);">
-            <span style="font-size: 0.8rem; color: var(--color-text-muted); text-transform: uppercase; font-weight: 600;">Budget Consumption</span>
-            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 800; color: ${financials.isOverBudget ? '#f87171' : '#fbbf24'}; margin-top: 0.25rem;">
+          <div class="card" style="padding: 1.25rem; background: #ffffff; border: 1px solid var(--color-border);">
+            <span style="font-size: 0.8rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Budget Consumption</span>
+            <div style="font-family: var(--font-heading); font-size: 1.8rem; font-weight: 900; color: ${financials.isOverBudget ? '#ef4444' : '#d97706'}; margin-top: 0.25rem;">
               ${financials.percentUsed}%
             </div>
           </div>
@@ -521,55 +519,55 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
 
         <!-- Category Breakdown Grid -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
-          <div class="card" style="padding: 1.5rem; background: rgba(11,15,25,0.7); border: 1px solid var(--color-border);">
-            <h4 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 1.25rem;">
+          <div class="card" style="padding: 1.5rem; background: #f8fafc; border: 1px solid var(--color-border);">
+            <h4 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 1.25rem;">
               Category Allocations
             </h4>
             <div style="display: flex; flex-direction: column; gap: 1rem;">
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.35rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.35rem; color: #0f172a;">
                   <span>🏨 Accommodation (Est. 40%)</span>
                   <strong>₹${financials.accommodationCost.toLocaleString('en-IN')}</strong>
                 </div>
-                <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: var(--radius-full);">
-                  <div style="width: 40%; height: 100%; background: #818cf8; border-radius: var(--radius-full);"></div>
+                <div style="height: 6px; background: #e2e8f0; border-radius: var(--radius-full);">
+                  <div style="width: 40%; height: 100%; background: #6366f1; border-radius: var(--radius-full);"></div>
                 </div>
               </div>
 
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.35rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.35rem; color: #0f172a;">
                   <span>🚆 Transport & Flights (Est. 35%)</span>
                   <strong>₹${financials.transportCost.toLocaleString('en-IN')}</strong>
                 </div>
-                <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: var(--radius-full);">
-                  <div style="width: 35%; height: 100%; background: #38bdf8; border-radius: var(--radius-full);"></div>
+                <div style="height: 6px; background: #e2e8f0; border-radius: var(--radius-full);">
+                  <div style="width: 35%; height: 100%; background: #0ea5e9; border-radius: var(--radius-full);"></div>
                 </div>
               </div>
 
               <div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.35rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; margin-bottom: 0.35rem; color: #0f172a;">
                   <span>🎯 Planned Activities</span>
                   <strong>₹${financials.activityCost.toLocaleString('en-IN')}</strong>
                 </div>
-                <div style="height: 6px; background: rgba(255,255,255,0.06); border-radius: var(--radius-full);">
-                  <div style="width: ${Math.min(Math.round((financials.activityCost / financials.totalBudget) * 100), 100)}%; height: 100%; background: #34d399; border-radius: var(--radius-full);"></div>
+                <div style="height: 6px; background: #e2e8f0; border-radius: var(--radius-full);">
+                  <div style="width: ${Math.min(Math.round((financials.activityCost / financials.totalBudget) * 100), 100)}%; height: 100%; background: #10b981; border-radius: var(--radius-full);"></div>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Destination Breakdown -->
-          <div class="card" style="padding: 1.5rem; background: rgba(11,15,25,0.7); border: 1px solid var(--color-border);">
-            <h4 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #fff; margin-bottom: 1.25rem;">
+          <div class="card" style="padding: 1.5rem; background: #f8fafc; border: 1px solid var(--color-border);">
+            <h4 style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 1.25rem;">
               Spending by Destination
             </h4>
             <div style="display: flex; flex-direction: column; gap: 0.75rem;">
               ${stops.map(stop => {
                 const stopCost = (stop.activities || []).reduce((acc, a) => acc + (parseFloat(a.cost) || 0), 0);
                 return `
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(15,23,42,0.6); border-radius: var(--radius-sm); border: 1px solid rgba(255,255,255,0.05);">
-                    <span style="font-weight: 600; color: #fff;">📍 ${escapeHtml(stop.cityName)}</span>
-                    <span style="font-weight: 700; color: #34d399;">₹${stopCost.toLocaleString('en-IN')}</span>
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #ffffff; border-radius: var(--radius-sm); border: 1px solid var(--color-border);">
+                    <span style="font-weight: 700; color: #0f172a;">📍 ${escapeHtml(stop.cityName)}</span>
+                    <span style="font-weight: 800; color: #059669;">₹${stopCost.toLocaleString('en-IN')}</span>
                   </div>
                 `;
               }).join('')}

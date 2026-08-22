@@ -1,6 +1,6 @@
 /**
- * My Trips Management View Component (Stitch MCP Reference)
- * Features search, sort, upcoming/past filters, grid/list view, and trip deletion.
+ * My Trips Management View Component (Light Editorial Design)
+ * Features search, sort, upcoming/past filters, and trip deletion.
  */
 import { api } from '../api.js';
 
@@ -15,7 +15,6 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
   let searchTerm = '';
   let activeFilter = 'all'; // 'all' | 'upcoming' | 'past'
   let sortBy = 'date-desc';
-  let viewLayout = 'grid'; // 'grid' | 'list'
 
   async function loadTrips() {
     isLoading = true;
@@ -88,8 +87,8 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
     if (isLoading) {
       container.innerHTML = `
         <div style="text-align: center; padding: 6rem 0;">
-          <div class="spinner" style="width: 44px; height: 44px; border: 3px solid rgba(79, 70, 229, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
-          <p style="color: var(--color-text-muted); margin-top: 1rem; font-size: 1.05rem;">Loading Your Trips...</p>
+          <div class="spinner" style="width: 44px; height: 44px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
+          <p style="color: #64748b; margin-top: 1rem; font-size: 1.05rem;">Loading Your Journeys...</p>
         </div>
       `;
       return;
@@ -101,13 +100,13 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
       <!-- Header -->
       <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
         <div>
-          <span class="badge" style="background: rgba(79, 70, 229, 0.15); color: var(--color-primary-light); margin-bottom: 0.35rem;">
+          <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); margin-bottom: 0.35rem; font-weight: 700;">
             ✈️ TRIP MANAGEMENT
           </span>
-          <h1 style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 800; color: #fff;">
+          <h1 style="font-family: var(--font-heading); font-size: 2.5rem; font-weight: 900; color: #0f172a;">
             My Journeys
           </h1>
-          <p style="color: var(--color-text-muted); font-size: 0.95rem; margin-top: 0.2rem;">
+          <p style="color: #64748b; font-size: 1rem; margin-top: 0.2rem;">
             Manage, customize, and track all your scheduled multi-city itineraries.
           </p>
         </div>
@@ -118,8 +117,8 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
         </button>
       </div>
 
-      <!-- Controls Bar: Search, Filters, Sort, View Toggle -->
-      <div class="card" style="padding: 1.25rem 1.5rem; background: var(--color-surface); border: 1px solid var(--color-border); margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <!-- Controls Bar: Search, Filters, Sort -->
+      <div class="card" style="padding: 1.25rem 1.5rem; background: #ffffff; border: 1px solid var(--color-border); margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: var(--shadow-sm);">
         
         <!-- Search & Filter Tabs -->
         <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; flex: 1;">
@@ -135,22 +134,22 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
             />
           </div>
 
-          <div style="display: flex; background: rgba(11,15,25,0.6); padding: 3px; border-radius: var(--radius-full); border: 1px solid var(--color-border);">
-            <button class="btn btn-sm ${activeFilter === 'all' ? 'btn-primary' : 'btn-secondary'}" data-filter="all" style="border-radius: var(--radius-full); border: none; font-size: 0.8rem; padding: 0.35rem 0.85rem;">
+          <div style="display: flex; background: #f1f5f9; padding: 3px; border-radius: var(--radius-full); border: 1px solid var(--color-border);">
+            <button class="btn btn-sm ${activeFilter === 'all' ? 'btn-primary' : 'btn-secondary'}" data-filter="all" style="border-radius: var(--radius-full); border: none; font-size: 0.82rem; padding: 0.35rem 0.85rem; font-weight: 600;">
               All (${trips.length})
             </button>
-            <button class="btn btn-sm ${activeFilter === 'upcoming' ? 'btn-primary' : 'btn-secondary'}" data-filter="upcoming" style="border-radius: var(--radius-full); border: none; font-size: 0.8rem; padding: 0.35rem 0.85rem;">
+            <button class="btn btn-sm ${activeFilter === 'upcoming' ? 'btn-primary' : 'btn-secondary'}" data-filter="upcoming" style="border-radius: var(--radius-full); border: none; font-size: 0.82rem; padding: 0.35rem 0.85rem; font-weight: 600;">
               Upcoming
             </button>
-            <button class="btn btn-sm ${activeFilter === 'past' ? 'btn-primary' : 'btn-secondary'}" data-filter="past" style="border-radius: var(--radius-full); border: none; font-size: 0.8rem; padding: 0.35rem 0.85rem;">
+            <button class="btn btn-sm ${activeFilter === 'past' ? 'btn-primary' : 'btn-secondary'}" data-filter="past" style="border-radius: var(--radius-full); border: none; font-size: 0.82rem; padding: 0.35rem 0.85rem; font-weight: 600;">
               Past
             </button>
           </div>
         </div>
 
-        <!-- Sort & View Layout -->
+        <!-- Sort -->
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <select class="form-input" id="trip-sort-select" style="font-size: 0.85rem; padding: 0.45rem 0.85rem; border-radius: var(--radius-md);">
+          <select class="form-input" id="trip-sort-select" style="font-size: 0.85rem; padding: 0.45rem 0.85rem; border-radius: var(--radius-md); font-weight: 600;">
             <option value="date-desc" ${sortBy === 'date-desc' ? 'selected' : ''}>📅 Date: Newest First</option>
             <option value="date-asc" ${sortBy === 'date-asc' ? 'selected' : ''}>📅 Date: Oldest First</option>
             <option value="budget-desc" ${sortBy === 'budget-desc' ? 'selected' : ''}>💰 Budget: High to Low</option>
@@ -160,11 +159,11 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
 
       </div>
 
-      <!-- Trips Display Grid / List -->
+      <!-- Trips Display Grid -->
       ${filteredTrips.length === 0 ? `
         <div class="empty-state">
           <div class="empty-state-icon">✈️</div>
-          <h3 style="color: #fff; margin-bottom: 0.5rem;">You have no trips matching your filters</h3>
+          <h3 style="color: #0f172a; margin-bottom: 0.5rem;">You have no trips matching your filters</h3>
           <p class="empty-state-desc">Create your next unforgettable adventure or clear your search query.</p>
           <button class="btn btn-primary btn-lg" id="btn-create-first-trip">+ Plan Your First Trip</button>
         </div>
@@ -180,18 +179,18 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
             const defaultCover = 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80';
 
             return `
-              <div class="card trip-card animate-fade-in" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: var(--shadow-md); transition: transform 0.25s ease, border-color 0.25s ease;">
+              <div class="card trip-card animate-fade-in" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm); transition: transform 0.25s ease, box-shadow 0.25s ease;">
                 
                 <div style="position: relative; height: 180px; overflow: hidden;">
                   <img src="${escapeHtml(t.coverImage || defaultCover)}" alt="${escapeHtml(t.title)}" onerror="this.onerror=null; this.src='${defaultCover}';" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease;" />
-                  <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(19,27,46,0.95) 0%, rgba(19,27,46,0.2) 60%, rgba(0,0,0,0.3) 100%);"></div>
+                  <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.1) 60%, rgba(0,0,0,0.2) 100%);"></div>
 
-                  <span class="badge" style="position: absolute; top: 1rem; right: 1rem; background: rgba(15,23,42,0.85); backdrop-filter: blur(6px); color: #34d399; font-weight: 700; border: 1px solid rgba(255,255,255,0.1);">
+                  <span class="badge" style="position: absolute; top: 1rem; right: 1rem; background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); color: #059669; font-weight: 700; border: 1px solid rgba(0,0,0,0.06);">
                     ${formattedBudget}
                   </span>
 
                   <div style="position: absolute; bottom: 1rem; left: 1.25rem; right: 1.25rem;">
-                    <span class="badge" style="background: rgba(79,70,229,0.2); color: var(--color-primary-light); margin-bottom: 0.3rem;">
+                    <span class="badge" style="background: rgba(255,255,255,0.2); backdrop-filter: blur(6px); color: #fff; margin-bottom: 0.3rem;">
                       📍 ${t.destinationsCount || 3} Destinations
                     </span>
                     <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 800; color: #fff; line-height: 1.2;">
@@ -202,20 +201,20 @@ export function renderMyTrips({ onOpenTrip, onPlanNewTrip }) {
 
                 <div style="padding: 1.25rem 1.5rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
                   <div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--color-text-muted); font-size: 0.88rem; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: #64748b; font-size: 0.88rem; margin-bottom: 0.75rem;">
                       <span>📅</span>
                       <span>${escapeHtml(datesStr)}</span>
                     </div>
-                    <p style="color: var(--color-text-subtle); font-size: 0.85rem; line-height: 1.5; margin-bottom: 1.25rem;">
+                    <p style="color: #64748b; font-size: 0.85rem; line-height: 1.5; margin-bottom: 1.25rem;">
                       ${escapeHtml(t.description || 'Custom planned multi-city journey.')}
                     </p>
                   </div>
 
-                  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); gap: 0.5rem;">
-                    <button class="btn btn-primary btn-open-trip" data-id="${escapeHtml(t.id)}" style="flex: 1; justify-content: center;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--color-border); gap: 0.5rem;">
+                    <button class="btn btn-primary btn-open-trip" data-id="${escapeHtml(t.id)}" style="flex: 1; justify-content: center; font-size: 0.85rem;">
                       View Itinerary →
                     </button>
-                    <button class="btn btn-secondary btn-delete-trip" data-id="${escapeHtml(t.id)}" data-title="${escapeHtml(t.title)}" title="Delete Trip" style="color: #f87171; border-color: rgba(239,68,68,0.2);">
+                    <button class="btn btn-secondary btn-delete-trip" data-id="${escapeHtml(t.id)}" data-title="${escapeHtml(t.title)}" title="Delete Trip" style="color: #ef4444; border-color: rgba(239,68,68,0.2);">
                       🗑️
                     </button>
                   </div>

@@ -1,5 +1,5 @@
 /**
- * Add Activity Modal
+ * Add Activity Modal (Light Editorial Design)
  * Allows searching/selecting curated city activities or adding custom activities to a stop.
  */
 import { api } from '../api.js';
@@ -22,7 +22,7 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
   modal.style.left = '0';
   modal.style.right = '0';
   modal.style.bottom = '0';
-  modal.style.backgroundColor = 'rgba(5, 8, 18, 0.85)';
+  modal.style.backgroundColor = 'rgba(15, 23, 42, 0.65)';
   modal.style.backdropFilter = 'blur(12px)';
   modal.style.display = 'flex';
   modal.style.alignItems = 'center';
@@ -33,55 +33,55 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
   let curatedActivities = [];
   let selectedActivity = null;
   let selectedCategory = '';
-  let activeTab = 'curated'; // 'curated' | 'custom'
+  let activeTab = 'curated';
 
   modal.innerHTML = `
-    <div class="card animate-fade-in" style="width: 100%; max-width: 680px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: 0 25px 60px rgba(0,0,0,0.8); padding: 0;">
+    <div class="card animate-fade-in" style="width: 100%; max-width: 680px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #ffffff; border: 1px solid var(--color-border); box-shadow: 0 25px 60px rgba(15,23,42,0.25); padding: 0;">
       
       <!-- Header -->
-      <div style="padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: rgba(11,15,25,0.6);">
+      <div style="padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
         <div>
-          <span class="badge" style="background: rgba(79, 70, 229, 0.15); color: var(--color-primary-light); margin-bottom: 0.25rem;">
+          <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); margin-bottom: 0.25rem; font-weight: 700;">
             🎯 STOP ACTIVITY • ${escapeHtml(stop.cityName || 'Destination')}
           </span>
-          <h2 style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 800; color: #fff;">
+          <h2 style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 900; color: #0f172a;">
             Add Activity to Itinerary
           </h2>
         </div>
-        <button style="background: none; border: none; color: var(--color-text-muted); font-size: 1.3rem; cursor: pointer;" id="btn-close-act-modal">✕</button>
+        <button style="background: none; border: none; color: #64748b; font-size: 1.3rem; cursor: pointer; font-weight: 700;" id="btn-close-act-modal">✕</button>
       </div>
 
       <!-- Tab Switcher (Curated vs Custom) -->
-      <div style="display: flex; padding: 0.75rem 1.75rem; background: var(--color-surface); border-bottom: 1px solid var(--color-border); gap: 0.5rem;">
-        <button class="btn btn-sm btn-primary" id="tab-curated" style="border-radius: var(--radius-full);">
-          ✨ Curated Activities in ${escapeHtml(stop.cityName || 'City')}
+      <div style="display: flex; padding: 0.75rem 1.75rem; background: #ffffff; border-bottom: 1px solid var(--color-border); gap: 0.5rem;">
+        <button class="btn btn-sm btn-primary" id="tab-curated" style="border-radius: var(--radius-full); font-weight: 600;">
+          ✨ Curated in ${escapeHtml(stop.cityName || 'City')}
         </button>
-        <button class="btn btn-sm btn-secondary" id="tab-custom" style="border-radius: var(--radius-full);">
+        <button class="btn btn-sm btn-secondary" id="tab-custom" style="border-radius: var(--radius-full); font-weight: 600;">
           ✍️ Custom Activity
         </button>
       </div>
 
-      <!-- Category Filter Pills (For Curated) -->
-      <div id="curated-filters" style="padding: 0.75rem 1.75rem; background: rgba(15,23,42,0.5); border-bottom: 1px solid var(--color-border); display: flex; gap: 0.4rem; overflow-x: auto;">
+      <!-- Category Filter Pills -->
+      <div id="curated-filters" style="padding: 0.75rem 1.75rem; background: #f8fafc; border-bottom: 1px solid var(--color-border); display: flex; gap: 0.4rem; overflow-x: auto;">
         ${CATEGORIES.map(c => `
-          <button class="btn btn-sm ${c.id === '' ? 'btn-primary' : 'btn-secondary'}" data-cat="${c.id}" style="padding: 0.25rem 0.75rem; font-size: 0.78rem; border-radius: var(--radius-full); white-space: nowrap;">
+          <button class="btn btn-sm ${c.id === '' ? 'btn-primary' : 'btn-secondary'}" data-cat="${c.id}" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: var(--radius-full); white-space: nowrap; font-weight: 600;">
             ${c.label}
           </button>
         `).join('')}
       </div>
 
       <!-- Content Area -->
-      <div style="padding: 1.5rem 1.75rem; overflow-y: auto; flex: 1;">
+      <div style="padding: 1.5rem 1.75rem; overflow-y: auto; flex: 1; background: #ffffff;">
         <!-- Curated List View -->
         <div id="curated-view">
           <div style="text-align: center; padding: 2rem 0;" id="act-loading">
-            <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(79, 70, 229, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
-            <p style="color: var(--color-text-muted); margin-top: 0.75rem; font-size: 0.9rem;">Loading activities...</p>
+            <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
+            <p style="color: #64748b; margin-top: 0.75rem; font-size: 0.9rem;">Loading activities...</p>
           </div>
           <div id="act-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem;"></div>
         </div>
 
-        <!-- Custom / Details Configuration Form -->
+        <!-- Custom Configuration Form -->
         <div id="act-config-form" style="display: none;">
           <div class="form-group">
             <label class="form-label">Activity Title</label>
@@ -91,7 +91,7 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
             <div class="form-group">
               <label class="form-label">Category</label>
-              <select class="form-input" id="act-category">
+              <select class="form-input" id="act-category" style="font-weight: 600;">
                 <option value="Sightseeing">🏛️ Sightseeing</option>
                 <option value="Adventure">🧗 Adventure</option>
                 <option value="Food">🍲 Food & Dining</option>
@@ -127,7 +127,7 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
       </div>
 
       <!-- Footer Actions -->
-      <div style="padding: 1.25rem 1.75rem; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 0.75rem; background: rgba(11,15,25,0.6);">
+      <div style="padding: 1.25rem 1.75rem; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 0.75rem; background: #f8fafc;">
         <button class="btn btn-secondary" id="btn-cancel-act">Cancel</button>
         <button class="btn btn-primary" id="btn-confirm-add-act" disabled>
           <span>+</span>
@@ -207,7 +207,7 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
 
       if (!curatedActivities || curatedActivities.length === 0) {
         actList.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: var(--color-text-muted);">
+          <div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: #64748b;">
             No curated activities found for this category. You can add a custom activity using the tab above!
           </div>
         `;
@@ -218,22 +218,22 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
         const costStr = act.estimatedCost > 0 ? `₹${parseFloat(act.estimatedCost).toLocaleString('en-IN')}` : 'Free';
         const durStr = act.durationMinutes ? `${Math.round(act.durationMinutes / 60)}h` : '2 hours';
         return `
-          <div class="card act-pick-card" style="padding: 1rem; cursor: pointer; background: rgba(15,23,42,0.6); border: 1px solid var(--color-border); display: flex; flex-direction: column; justify-content: space-between; transition: border-color 0.2s ease;">
+          <div class="card act-pick-card" style="padding: 1.15rem; cursor: pointer; background: #ffffff; border: 1px solid var(--color-border); display: flex; flex-direction: column; justify-content: space-between; transition: border-color 0.2s ease, box-shadow 0.2s ease; box-shadow: var(--shadow-sm);">
             <div>
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span class="badge" style="background: rgba(79, 70, 229, 0.15); color: var(--color-primary-light); font-size: 0.72rem;">
+                <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); font-size: 0.72rem; font-weight: 700;">
                   ${escapeHtml(act.category || 'General')}
                 </span>
-                <span style="font-size: 0.75rem; color: var(--color-text-subtle);">⏱️ ${durStr}</span>
+                <span style="font-size: 0.75rem; color: #64748b;">⏱️ ${durStr}</span>
               </div>
-              <h4 style="font-family: var(--font-heading); font-size: 1rem; font-weight: 700; color: #fff; line-height: 1.3;">
+              <h4 style="font-family: var(--font-heading); font-size: 1.02rem; font-weight: 800; color: #0f172a; line-height: 1.3;">
                 ${escapeHtml(act.name)}
               </h4>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.06);">
-              <span style="font-weight: 700; color: ${act.estimatedCost > 0 ? '#34d399' : '#38bdf8'}; font-size: 0.9rem;">${costStr}</span>
-              <button class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">Select +</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--color-border);">
+              <span style="font-weight: 800; color: ${act.estimatedCost > 0 ? '#059669' : '#0284c7'}; font-size: 0.92rem;">${costStr}</span>
+              <button class="btn btn-secondary btn-sm" style="font-size: 0.75rem; padding: 0.25rem 0.65rem;">Select +</button>
             </div>
           </div>
         `;
@@ -241,11 +241,14 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
 
       actList.querySelectorAll('.act-pick-card').forEach((card, idx) => {
         card.addEventListener('click', () => {
-          actList.querySelectorAll('.act-pick-card').forEach(c => c.style.borderColor = 'var(--color-border)');
+          actList.querySelectorAll('.act-pick-card').forEach(c => {
+            c.style.borderColor = 'var(--color-border)';
+            c.style.boxShadow = 'var(--shadow-sm)';
+          });
           card.style.borderColor = 'var(--color-primary)';
+          card.style.boxShadow = '0 0 0 2px var(--color-primary)';
           selectedActivity = curatedActivities[idx];
           
-          // Pre-fill custom form
           modal.querySelector('#act-title').value = selectedActivity.name;
           modal.querySelector('#act-category').value = selectedActivity.category || 'Sightseeing';
           modal.querySelector('#act-cost').value = selectedActivity.estimatedCost || 0;
@@ -257,7 +260,7 @@ export function renderAddActivityModal({ stop, onActivityAdded, onClose }) {
 
     } catch (err) {
       actLoading.style.display = 'none';
-      actList.innerHTML = `<div style="grid-column: 1 / -1; color: #f87171; text-align: center;">${escapeHtml(err.message)}</div>`;
+      actList.innerHTML = `<div style="grid-column: 1 / -1; color: #ef4444; text-align: center;">${escapeHtml(err.message)}</div>`;
     }
   }
 

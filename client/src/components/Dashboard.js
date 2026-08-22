@@ -1,5 +1,5 @@
 /**
- * Dashboard View (User Trips & Itinerary Overview - Stitch MCP Reference)
+ * Dashboard View (User Trips & Itinerary Overview - Light Editorial Design)
  * Features Stats Bento, Rich Trip Cards, Quick Share Actions, and New Trip Modal.
  */
 import { api } from '../api.js';
@@ -58,16 +58,16 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
     const userName = user?.name || 'Traveler';
 
     container.innerHTML = `
-      <!-- Header Section (Stitch Reference) -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1.25rem;">
+      <!-- Header Section -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2.5rem; flex-wrap: wrap; gap: 1.25rem; padding-top: 1rem;">
         <div>
-          <div class="badge" style="background: rgba(79, 70, 229, 0.15); color: var(--color-primary-light); border: 1px solid rgba(79, 70, 229, 0.3); margin-bottom: 0.5rem;">
+          <div class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); border: 1px solid rgba(37, 99, 235, 0.2); margin-bottom: 0.5rem; font-weight: 700;">
             👋 WELCOME BACK
           </div>
-          <h1 style="font-family: var(--font-heading); font-size: 2.4rem; font-weight: 800; color: #fff; margin-top: 0.2rem;">
+          <h1 style="font-family: var(--font-heading); font-size: 2.6rem; font-weight: 900; color: #0f172a; margin-top: 0.2rem; letter-spacing: -0.02em;">
             Good day, ${escapeHtml(userName)}
           </h1>
-          <p style="color: var(--color-text-muted); font-size: 1.05rem; margin-top: 0.35rem;">
+          <p style="color: #64748b; font-size: 1.05rem; margin-top: 0.35rem;">
             Here's a snapshot of your travel plans and collaborative itineraries.
           </p>
         </div>
@@ -82,34 +82,34 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
         </div>
       </div>
 
-      <!-- Stats Bento Section (Stitch Reference) -->
+      <!-- Stats Bento Section -->
       <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 2.5rem;">
-        <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; border-color: rgba(255,255,255,0.08);">
-          <div style="display: flex; justify-content: space-between; align-items: center; color: var(--color-text-muted);">
+        <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: center; color: #64748b;">
             <span style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Upcoming Trips</span>
             <span style="font-size: 1.3rem;">✈️</span>
           </div>
-          <div style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 800; color: #fff;">
+          <div style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 900; color: #0f172a;">
             ${stats.tripCount}
           </div>
         </div>
 
-        <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; border-color: rgba(255,255,255,0.08);">
-          <div style="display: flex; justify-content: space-between; align-items: center; color: var(--color-text-muted);">
+        <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: center; color: #64748b;">
             <span style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Destinations Planned</span>
             <span style="font-size: 1.3rem;">📍</span>
           </div>
-          <div style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 800; color: #fff;">
+          <div style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 900; color: #0f172a;">
             ${stats.totalDestinations}
           </div>
         </div>
 
-        <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; border-color: rgba(255,255,255,0.08);">
-          <div style="display: flex; justify-content: space-between; align-items: center; color: var(--color-text-muted);">
+        <div class="card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 0.75rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
+          <div style="display: flex; justify-content: space-between; align-items: center; color: #64748b;">
             <span style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Total Planned Budget</span>
             <span style="font-size: 1.3rem;">💳</span>
           </div>
-          <div style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 800; color: #34d399;">
+          <div style="font-family: var(--font-heading); font-size: 2.2rem; font-weight: 900; color: #059669;">
             ${stats.totalBudget}
           </div>
         </div>
@@ -117,7 +117,7 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
 
       <!-- Section Title -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-border);">
-        <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700; color: #fff;">
+        <h2 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 800; color: #0f172a;">
           Your Planned Journeys
         </h2>
       </div>
@@ -125,13 +125,13 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
       <!-- Trips Grid -->
       ${isLoading ? `
         <div style="text-align: center; padding: 5rem 0;">
-          <div class="spinner" style="width: 36px; height: 36px; border: 3px solid rgba(79, 70, 229, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
-          <p style="color: var(--color-text-muted); margin-top: 1rem;">Loading your journeys...</p>
+          <div class="spinner" style="width: 36px; height: 36px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
+          <p style="color: #64748b; margin-top: 1rem;">Loading your journeys...</p>
         </div>
       ` : (trips.length === 0 ? `
-        <div class="empty-state animate-fade-in" style="padding: 4.5rem 2rem;">
+        <div class="empty-state animate-fade-in" style="padding: 4.5rem 2rem; background: #ffffff;">
           <div class="empty-state-icon">🌍</div>
-          <h3 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 700; color: #fff; margin-bottom: 0.5rem;">No trips planned yet</h3>
+          <h3 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">No trips planned yet</h3>
           <p class="empty-state-desc">
             You haven't created any journeys yet. Start planning your dream multi-city itinerary now with budget estimation and smart routing!
           </p>
@@ -179,27 +179,27 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
     const tripImg = trip.imageUrl || defaultImg;
 
     return `
-      <article class="card trip-interactive-card animate-fade-in" data-id="${escapeHtml(trip.id)}" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.25s ease, box-shadow 0.25s ease; border: 1px solid var(--color-border);">
+      <article class="card trip-interactive-card animate-fade-in" data-id="${escapeHtml(trip.id)}" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.25s ease, box-shadow 0.25s ease; border: 1px solid var(--color-border); background: #ffffff;">
         <div style="position: relative; height: 180px; overflow: hidden;">
           <img src="${escapeHtml(tripImg)}" alt="${escapeHtml(trip.title)}" onerror="this.onerror=null; this.src='${defaultImg}';" style="width: 100%; height: 100%; object-fit: cover;" />
-          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(19,27,46,0.95) 0%, rgba(19,27,46,0.2) 60%, rgba(0,0,0,0.4) 100%);"></div>
+          <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.1) 60%, rgba(0,0,0,0.2) 100%);"></div>
 
           <div style="position: absolute; top: 0.75rem; right: 0.75rem;">
-            <span class="badge" style="background: rgba(15,23,42,0.85); backdrop-filter: blur(6px); color: #34d399; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.1);">
+            <span class="badge" style="background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); color: #059669; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(0,0,0,0.06);">
               ${formattedBudget}
             </span>
           </div>
 
           <div style="position: absolute; bottom: 0.75rem; left: 1rem; right: 1rem;">
-            <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">📅 ${escapeHtml(datesStr)}</span>
+            <span style="font-size: 0.75rem; color: #cbd5e1; font-weight: 600;">📅 ${escapeHtml(datesStr)}</span>
             <h3 style="font-family: var(--font-heading); font-size: 1.35rem; font-weight: 800; color: #fff; margin-top: 0.15rem;">
               ${escapeHtml(trip.title)}
             </h3>
           </div>
         </div>
 
-        <div style="padding: 1.25rem; background: var(--color-surface); display: flex; flex-direction: column; justify-content: space-between; flex: 1;">
-          <p style="color: var(--color-text-muted); font-size: 0.88rem; line-height: 1.5; margin-bottom: 1.25rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+        <div style="padding: 1.25rem 1.5rem; background: #ffffff; display: flex; flex-direction: column; justify-content: space-between; flex: 1;">
+          <p style="color: #64748b; font-size: 0.88rem; line-height: 1.5; margin-bottom: 1.25rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
             ${escapeHtml(trip.description || 'Custom multi-city journey.')}
           </p>
 
@@ -241,7 +241,7 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
     modal.style.left = '0';
     modal.style.right = '0';
     modal.style.bottom = '0';
-    modal.style.backgroundColor = 'rgba(5, 8, 18, 0.85)';
+    modal.style.backgroundColor = 'rgba(15, 23, 42, 0.65)';
     modal.style.backdropFilter = 'blur(10px)';
     modal.style.display = 'flex';
     modal.style.alignItems = 'center';
@@ -250,12 +250,12 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
     modal.style.padding = '1rem';
 
     modal.innerHTML = `
-      <div class="card" style="width: 100%; max-width: 520px; background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: 0 25px 60px rgba(0,0,0,0.8);">
+      <div class="card" style="width: 100%; max-width: 520px; background: #ffffff; border: 1px solid var(--color-border); box-shadow: 0 25px 60px rgba(15,23,42,0.25);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-          <h2 style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 800; color: #fff;">
+          <h2 style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 800; color: #0f172a;">
             ✈️ Plan a New Journey
           </h2>
-          <button style="background: none; border: none; color: var(--color-text-muted); font-size: 1.2rem; cursor: pointer;" id="btn-close-create">✕</button>
+          <button style="background: none; border: none; color: #64748b; font-size: 1.2rem; cursor: pointer; font-weight: 700;" id="btn-close-create">✕</button>
         </div>
 
         <form id="create-trip-form">

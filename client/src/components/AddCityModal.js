@@ -1,5 +1,5 @@
 /**
- * Add City / Destination Stop Modal
+ * Add City / Destination Stop Modal (Light Editorial Design)
  * Allows searching and selecting a city to add to the active itinerary.
  */
 import { api } from '../api.js';
@@ -12,7 +12,7 @@ export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded,
   modal.style.left = '0';
   modal.style.right = '0';
   modal.style.bottom = '0';
-  modal.style.backgroundColor = 'rgba(5, 8, 18, 0.85)';
+  modal.style.backgroundColor = 'rgba(15, 23, 42, 0.65)';
   modal.style.backdropFilter = 'blur(12px)';
   modal.style.display = 'flex';
   modal.style.alignItems = 'center';
@@ -27,23 +27,23 @@ export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded,
   let isSubmitting = false;
 
   modal.innerHTML = `
-    <div class="card animate-fade-in" style="width: 100%; max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: var(--color-surface); border: 1px solid var(--color-border); box-shadow: 0 25px 60px rgba(0,0,0,0.8); padding: 0;">
+    <div class="card animate-fade-in" style="width: 100%; max-width: 720px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: #ffffff; border: 1px solid var(--color-border); box-shadow: 0 25px 60px rgba(15,23,42,0.25); padding: 0;">
       
       <!-- Header -->
-      <div style="padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: rgba(11,15,25,0.6);">
+      <div style="padding: 1.5rem 1.75rem; border-bottom: 1px solid var(--color-border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
         <div>
-          <span class="badge" style="background: rgba(79, 70, 229, 0.15); color: var(--color-primary-light); margin-bottom: 0.25rem;">
+          <span class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); margin-bottom: 0.25rem; font-weight: 700;">
             📍 ITINERARY STOP
           </span>
-          <h2 style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 800; color: #fff;">
+          <h2 style="font-family: var(--font-heading); font-size: 1.5rem; font-weight: 900; color: #0f172a;">
             Add Destination to Trip
           </h2>
         </div>
-        <button style="background: none; border: none; color: var(--color-text-muted); font-size: 1.3rem; cursor: pointer;" id="btn-close-city-modal">✕</button>
+        <button style="background: none; border: none; color: #64748b; font-size: 1.3rem; cursor: pointer; font-weight: 700;" id="btn-close-city-modal">✕</button>
       </div>
 
       <!-- Search Input -->
-      <div style="padding: 1rem 1.75rem; border-bottom: 1px solid var(--color-border); background: var(--color-surface);">
+      <div style="padding: 1rem 1.75rem; border-bottom: 1px solid var(--color-border); background: #ffffff;">
         <div style="position: relative;">
           <span style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); opacity: 0.6;">🔍</span>
           <input 
@@ -57,25 +57,25 @@ export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded,
       </div>
 
       <!-- Content Area: Cities Grid & Date Inputs -->
-      <div style="padding: 1.5rem 1.75rem; overflow-y: auto; flex: 1;">
+      <div style="padding: 1.5rem 1.75rem; overflow-y: auto; flex: 1; background: #ffffff;">
         <div id="city-selection-view">
           <div style="text-align: center; padding: 2rem 0;" id="cities-loading">
-            <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(79, 70, 229, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
-            <p style="color: var(--color-text-muted); margin-top: 0.75rem; font-size: 0.9rem;">Loading destinations...</p>
+            <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
+            <p style="color: #64748b; margin-top: 0.75rem; font-size: 0.9rem;">Loading destinations...</p>
           </div>
           <div id="cities-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem;"></div>
         </div>
 
         <!-- Selected City Configuration Form (Hidden until city chosen) -->
-        <div id="city-config-form" style="display: none; margin-top: 1rem; padding: 1.25rem; background: rgba(15,23,42,0.8); border: 1px solid rgba(79,70,229,0.3); border-radius: var(--radius-md);">
+        <div id="city-config-form" style="display: none; margin-top: 1rem; padding: 1.25rem; background: #f8fafc; border: 1px solid var(--color-border); border-radius: var(--radius-md);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <div style="width: 44px; height: 44px; border-radius: var(--radius-md); overflow: hidden;">
+              <div style="width: 48px; height: 48px; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--color-border);">
                 <img id="selected-city-thumb" src="" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';" />
               </div>
               <div>
-                <h4 id="selected-city-title" style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 700; color: #fff;">City</h4>
-                <span id="selected-city-sub" style="font-size: 0.8rem; color: var(--color-text-muted);">Country</span>
+                <h4 id="selected-city-title" style="font-family: var(--font-heading); font-size: 1.15rem; font-weight: 800; color: #0f172a;">City</h4>
+                <span id="selected-city-sub" style="font-size: 0.82rem; color: #64748b;">Country</span>
               </div>
             </div>
             <button class="btn btn-secondary btn-sm" id="btn-change-city" style="font-size: 0.8rem;">Change</button>
@@ -100,7 +100,7 @@ export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded,
       </div>
 
       <!-- Footer Actions -->
-      <div style="padding: 1.25rem 1.75rem; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 0.75rem; background: rgba(11,15,25,0.6);">
+      <div style="padding: 1.25rem 1.75rem; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 0.75rem; background: #f8fafc;">
         <button class="btn btn-secondary" id="btn-cancel-city">Cancel</button>
         <button class="btn btn-primary" id="btn-confirm-add-city" disabled>
           <span>+</span>
@@ -150,7 +150,7 @@ export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded,
 
       if (!cities || cities.length === 0) {
         citiesList.innerHTML = `
-          <div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: var(--color-text-muted);">
+          <div style="grid-column: 1 / -1; text-align: center; padding: 2rem 0; color: #64748b;">
             No destinations found matching "${escapeHtml(searchTerm)}".
           </div>
         `;
@@ -160,21 +160,21 @@ export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded,
       citiesList.innerHTML = cities.slice(0, 12).map(city => {
         const costSymbols = city.costIndex ? '₹'.repeat(Math.min(city.costIndex, 4)) : '₹₹';
         return `
-          <div class="card city-pick-card" data-id="${escapeHtml(city.id)}" style="padding: 0; overflow: hidden; cursor: pointer; border: 1px solid var(--color-border); transition: transform 0.2s ease, border-color 0.2s ease;">
+          <div class="card city-pick-card" data-id="${escapeHtml(city.id)}" style="padding: 0; overflow: hidden; cursor: pointer; border: 1px solid var(--color-border); background: #ffffff; transition: transform 0.2s ease, border-color 0.2s ease; box-shadow: var(--shadow-sm);">
             <div style="position: relative; height: 110px;">
               <img src="${escapeHtml(city.imageUrl || '')}" alt="${escapeHtml(city.name)}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';" style="width: 100%; height: 100%; object-fit: cover;" />
-              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(19,27,46,0.9) 0%, transparent 60%);"></div>
-              <span class="badge" style="position: absolute; top: 6px; right: 6px; background: rgba(15,23,42,0.85); font-size: 0.72rem; color: #fbbf24;">
+              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(15,23,42,0.85) 0%, transparent 60%);"></div>
+              <span class="badge" style="position: absolute; top: 6px; right: 6px; background: rgba(255,255,255,0.92); font-size: 0.72rem; color: #d97706; font-weight: 700;">
                 🔥 ${city.popularity || 85}%
               </span>
               <div style="position: absolute; bottom: 6px; left: 8px;">
-                <h4 style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 700; color: #fff;">${escapeHtml(city.name)}</h4>
-                <span style="font-size: 0.72rem; color: #94a3b8;">${escapeHtml(city.country)}</span>
+                <h4 style="font-family: var(--font-heading); font-size: 0.95rem; font-weight: 800; color: #fff;">${escapeHtml(city.name)}</h4>
+                <span style="font-size: 0.72rem; color: #cbd5e1;">${escapeHtml(city.country)}</span>
               </div>
             </div>
-            <div style="padding: 0.5rem 0.75rem; background: var(--color-surface); display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.75rem; color: #34d399; font-weight: 600;">${costSymbols}</span>
-              <span style="font-size: 0.75rem; color: var(--color-primary-light); font-weight: 600;">Select +</span>
+            <div style="padding: 0.5rem 0.75rem; background: #ffffff; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.75rem; color: #059669; font-weight: 700;">${costSymbols}</span>
+              <span style="font-size: 0.75rem; color: var(--color-primary); font-weight: 700;">Select +</span>
             </div>
           </div>
         `;
@@ -197,7 +197,7 @@ export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded,
       });
     } catch (err) {
       citiesLoading.style.display = 'none';
-      citiesList.innerHTML = `<div style="grid-column: 1 / -1; color: #f87171; text-align: center;">${escapeHtml(err.message)}</div>`;
+      citiesList.innerHTML = `<div style="grid-column: 1 / -1; color: #ef4444; text-align: center;">${escapeHtml(err.message)}</div>`;
     }
   }
 
@@ -224,7 +224,6 @@ export function renderAddCityModal({ tripId, currentStopsCount = 0, onCityAdded,
           notes
         });
       } catch (e) {
-        // Local fallback object if backend stops endpoint has specific constraints
         newStop = {
           id: 'stop-' + Date.now(),
           tripId,
