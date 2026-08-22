@@ -1,5 +1,5 @@
 /**
- * Auth Middleware (Phase 1 — Real JWT Verification)
+ * Auth Middleware — Real JWT Verification
  * 
  * Verifies JWT tokens from Authorization: Bearer <token> header.
  * Attaches { userId, email } to req.user on success.

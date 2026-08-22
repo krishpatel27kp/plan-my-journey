@@ -44,7 +44,7 @@ The server runs on `http://localhost:5000` by default.
 ```
 client/              — Frontend (Vite + React)
 server/              — Backend (Express)
-  ├── middleware/     — Auth stub, error handler
+  ├── middleware/     — Auth (JWT verification), error handler
   ├── routes/         — Route handlers by domain
   ├── services/       — Business logic (budget calculations, etc.)
   ├── seed/           — Seed scripts (Pillar C)
