@@ -1,6 +1,6 @@
 /**
  * Authentication & Security Utilities
- * - Password Hashing & Verification (bcrypt standard / PBKDF2-SHA256)
+ * - Password Hashing & Verification (PBKDF2-SHA256)
  * - Standard HS256 JWT Generation & Verification
  * - Input Validation
  */
@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 
-// Safe .env loader without requiring external dotenv package
+// Safe .env loader
 function loadEnv() {
   const envPaths = [
     path.resolve(__dirname, '../../.env'),
@@ -50,7 +50,7 @@ function parseExpiresIn(expiresIn) {
   if (!expiresIn) return 3600; // 1 hour default
   if (typeof expiresIn === 'number') return expiresIn;
   
-  const match = expiresIn.match(/^(\d+)([smhd])?$/);
+  const match = String(expiresIn).match(/^(\d+)([smhd])?$/);
   if (!match) return 3600;
   
   const val = parseInt(match[1], 10);
@@ -86,7 +86,6 @@ function base64UrlDecode(str) {
 
 /**
  * Password Hashing using PBKDF2-SHA256 with 100,000 iterations & salt
- * Stored format: $pbkdf2$100000$salt$hash
  */
 function hashPassword(password) {
   if (!password || typeof password !== 'string') {
@@ -109,7 +108,6 @@ function comparePassword(password, storedHash) {
     const actualHash = crypto.pbkdf2Sync(password, salt, iterations, 64, 'sha256').toString('hex');
     return crypto.timingSafeEqual(Buffer.from(actualHash, 'hex'), Buffer.from(expectedHash, 'hex'));
   }
-  // Fallback check
   const fallbackHash = crypto.createHash('sha256').update(password).digest('hex');
   return storedHash === fallbackHash;
 }
@@ -118,9 +116,9 @@ function comparePassword(password, storedHash) {
  * Generate standard HS256 JWT
  * Payload shape: { userId: string, email: string, iat: number, exp: number }
  */
-function generateToken(user, expiresInStr = process.env.JWT_EXPIRES_IN || '1h') {
+function generateToken(user, expiresInStr = process.env.JWT_EXPIRES_IN || '1h', customIat = null) {
   const secret = getJwtSecret();
-  const now = Math.floor(Date.now() / 1000);
+  const now = customIat !== null ? customIat : Math.floor(Date.now() / 1000);
   const durationSeconds = parseExpiresIn(expiresInStr);
   
   const header = {
@@ -153,12 +151,16 @@ function generateToken(user, expiresInStr = process.env.JWT_EXPIRES_IN || '1h') 
  */
 function verifyToken(token) {
   if (!token || typeof token !== 'string') {
-    throw new Error('Token missing or not a string');
+    const err = new Error('Token missing or not a string');
+    err.code = 'UNAUTHORIZED';
+    throw err;
   }
 
   const parts = token.split('.');
   if (parts.length !== 3) {
-    throw new Error('Malformed JWT structure');
+    const err = new Error('Malformed JWT structure');
+    err.code = 'UNAUTHORIZED';
+    throw err;
   }
 
   const [encodedHeader, encodedPayload, encodedSignature] = parts;
@@ -177,7 +179,9 @@ function verifyToken(token) {
   const sigBuf = Buffer.from(encodedSignature);
   const expBuf = Buffer.from(expectedEncodedSig);
   if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-    throw new Error('Invalid signature');
+    const err = new Error('Invalid token signature');
+    err.code = 'UNAUTHORIZED';
+    throw err;
   }
 
   // Parse payload
@@ -185,7 +189,9 @@ function verifyToken(token) {
   try {
     payload = JSON.parse(base64UrlDecode(encodedPayload));
   } catch (err) {
-    throw new Error('Invalid token payload');
+    const error = new Error('Invalid token payload');
+    error.code = 'UNAUTHORIZED';
+    throw error;
   }
 
   // Check expiration
@@ -193,6 +199,7 @@ function verifyToken(token) {
   if (payload.exp && payload.exp < now) {
     const error = new Error('Token expired');
     error.name = 'TokenExpiredError';
+    error.code = 'TOKEN_EXPIRED';
     throw error;
   }
 

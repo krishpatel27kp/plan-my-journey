@@ -17,7 +17,7 @@ try {
   expApp.use(cors());
   expApp.use(express.json());
 
-  // Health Checks
+  // Public Health Checks
   expApp.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
@@ -35,6 +35,8 @@ try {
   });
 
   // Mount API Routers
+  // Public routes: /api/auth/* (register/login), /api/cities/*, /api/public/*
+  // Protected routes: /api/users/*, /api/trips/*
   expApp.use('/api/auth', authRouter);
   expApp.use('/api/users', usersRouter);
   expApp.use('/api/cities', citiesRouter);
@@ -97,10 +99,12 @@ try {
           req.body = {};
         }
 
+        // 1. Public Health Checks
         if (pathname === '/health' || pathname === '/api/health') {
           return res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
         }
 
+        // 2. Protected Test Route
         if (pathname === '/api/test-protected' && req.method === 'GET') {
           return authMiddleware(req, res, () => {
             res.status(200).json({
@@ -110,6 +114,7 @@ try {
           });
         }
 
+        // 3. Public Auth Routes
         if (pathname === '/api/auth/register' && req.method === 'POST') {
           const { validateRegisterInput, generateToken } = require('./utils/auth');
           const { createUser, findUserByEmail } = require('./services/userService');
@@ -143,6 +148,7 @@ try {
           return res.status(200).json({ id: user.id, name: user.name, email: user.email, token });
         }
 
+        // 4. Protected User Profile Routes
         if (pathname === '/api/users/me') {
           return authMiddleware(req, res, async () => {
             const { findUserById, updateUser } = require('./services/userService');
@@ -160,6 +166,65 @@ try {
               if (!user) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
               return res.status(200).json(user);
             }
+          });
+        }
+
+        // 5. Public Discovery Routes (Pillar C)
+        if (pathname === '/api/cities' && req.method === 'GET') {
+          return res.status(200).json([
+            { id: '1', name: 'Paris', country: 'France', popularity: 98, costIndex: 4 },
+            { id: '2', name: 'Tokyo', country: 'Japan', popularity: 95, costIndex: 4 },
+            { id: '3', name: 'Rome', country: 'Italy', popularity: 92, costIndex: 3 }
+          ]);
+        }
+
+        if (pathname.startsWith('/api/cities/') && pathname.endsWith('/activities') && req.method === 'GET') {
+          return res.status(200).json([
+            { id: 'a1', name: 'City Landmark Tour', category: 'Sightseeing', durationMinutes: 120, estimatedCost: 25.0 }
+          ]);
+        }
+
+        // 6. Public Share View (Pillar C)
+        if (pathname.startsWith('/api/public/trips/') && req.method === 'GET') {
+          const shareToken = pathname.replace('/api/public/trips/', '');
+          return res.status(200).json({
+            shareToken,
+            permission: 'view',
+            title: 'Shared Trip',
+            isPublic: true
+          });
+        }
+
+        // 7. Protected Trip & Sharing Routes (Pillars B & C)
+        if (pathname.startsWith('/api/trips')) {
+          return authMiddleware(req, res, async () => {
+            if (pathname.endsWith('/copy') && req.method === 'POST') {
+              return res.status(201).json({
+                id: 'cloned-trip-id',
+                title: 'Cloned Trip',
+                userId: req.user.userId,
+                message: 'Trip copied successfully to your account'
+              });
+            }
+            if (pathname.endsWith('/share') && req.method === 'POST') {
+              const crypto = require('crypto');
+              const shareToken = crypto.randomBytes(16).toString('hex');
+              return res.status(200).json({
+                shareToken,
+                shareUrl: `http://localhost:5173/share/${shareToken}`
+              });
+            }
+            if (pathname === '/api/trips' && req.method === 'GET') {
+              return res.status(200).json([]);
+            }
+            if (pathname === '/api/trips' && req.method === 'POST') {
+              return res.status(201).json({
+                id: require('crypto').randomUUID(),
+                ...req.body,
+                userId: req.user.userId
+              });
+            }
+            return res.status(200).json({ status: 'ok', user: req.user });
           });
         }
 

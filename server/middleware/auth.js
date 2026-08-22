@@ -1,9 +1,11 @@
 /**
- * Auth Middleware — Real JWT Verification
+ * Auth Middleware — Real JWT Verification & Route Protection
  * 
  * Verifies JWT tokens from Authorization: Bearer <token> header.
  * Attaches { userId, email } to req.user on success.
- * Rejects invalid/expired/missing tokens with standard error shape.
+ * Returns distinct error codes:
+ *   - 401 TOKEN_EXPIRED when token exp timestamp is in the past.
+ *   - 401 UNAUTHORIZED for missing header, malformed format, or invalid signature.
  */
 
 const { verifyToken } = require('../utils/auth');
@@ -43,10 +45,19 @@ function authMiddleware(req, res, next) {
     
     if (next) next();
   } catch (err) {
+    if (err.name === 'TokenExpiredError' || err.code === 'TOKEN_EXPIRED' || err.message === 'Token expired') {
+      return res.status(401).json({
+        error: {
+          code: 'TOKEN_EXPIRED',
+          message: 'Token has expired. Please log in again.'
+        }
+      });
+    }
+    
     return res.status(401).json({
       error: {
         code: 'UNAUTHORIZED',
-        message: err.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid or expired token'
+        message: 'Invalid or malformed token'
       }
     });
   }
