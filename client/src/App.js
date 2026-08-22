@@ -1,12 +1,14 @@
 /**
  * Main Application Component
- * Manages route/tab state, user session, and modal overlays.
+ * Manages route/tab state, user session, modal overlays, and full itinerary workflows.
  */
 import { isAuthenticated, getUser, clearSession } from './auth.js';
 import { api } from './api.js';
 import { renderNavbar } from './components/Navbar.js';
 import { renderAuthView } from './components/AuthView.js';
 import { renderDashboard } from './components/Dashboard.js';
+import { renderMyTrips } from './components/MyTrips.js';
+import { renderItineraryBuilder } from './components/ItineraryBuilder.js';
 import { renderProfile } from './components/Profile.js';
 import { renderPublicShareView } from './components/PublicShareView.js';
 import { renderCitySearch } from './components/CitySearch.js';
@@ -17,10 +19,13 @@ export function createApp() {
   let currentUser = getUser();
   let shareToken = checkShareRoute();
   let activeTab = shareToken ? 'share' : (isAuthenticated() ? 'dashboard' : 'explore');
+  let activeTripId = null;
+  let activeTripData = null;
   let isAuthModalOpen = false;
   let authMode = 'login';
   let notification = null;
   let pendingPostAuth = null;
+  let shouldOpenCreateModal = false;
 
   function checkShareRoute() {
     const path = window.location.pathname;
@@ -72,13 +77,36 @@ export function createApp() {
   }
 
   function handleTabChange(tab) {
+    if (tab === 'create-trip-modal') {
+      if (!isAuthenticated()) {
+        isAuthModalOpen = true;
+        authMode = 'login';
+        render();
+        return;
+      }
+      activeTab = 'dashboard';
+      shouldOpenCreateModal = true;
+      render();
+      return;
+    }
+
     if (tab !== 'explore' && !isAuthenticated()) {
       isAuthModalOpen = true;
       render();
       return;
     }
+
     shareToken = null;
     activeTab = tab;
+    shouldOpenCreateModal = false;
+    render();
+  }
+
+  function handleOpenTrip(tripId, tripData) {
+    activeTripId = tripId;
+    activeTripData = tripData;
+    activeTab = 'itinerary';
+    shareToken = null;
     render();
   }
 
@@ -88,6 +116,8 @@ export function createApp() {
     isAuthModalOpen = false;
     authMode = 'login';
     activeTab = 'explore';
+    activeTripId = null;
+    activeTripData = null;
     render();
   }
 
@@ -161,20 +191,45 @@ export function createApp() {
           authMode = 'login';
           render();
         },
-        onCopySuccess: () => {
+        onCopySuccess: (newTripId) => {
           shareToken = null;
-          activeTab = 'dashboard';
+          activeTripId = newTripId;
+          activeTab = 'itinerary';
           window.history.pushState({}, '', '/');
           render();
         }
       }));
     } else if (activeTab === 'explore') {
       mainContent.appendChild(renderCitySearch());
+    } else if (activeTab === 'itinerary') {
+      mainContent.appendChild(renderItineraryBuilder({
+        tripId: activeTripId,
+        initialTrip: activeTripData,
+        onBack: () => {
+          activeTab = 'dashboard';
+          activeTripId = null;
+          activeTripData = null;
+          render();
+        }
+      }));
     } else if (isAuthenticated() && currentUser) {
       if (activeTab === 'dashboard') {
+        const createOnMount = shouldOpenCreateModal;
+        shouldOpenCreateModal = false;
         mainContent.appendChild(renderDashboard({
           user: currentUser,
-          onNavigate: handleTabChange
+          onNavigate: handleTabChange,
+          onOpenTrip: handleOpenTrip,
+          openCreateOnMount: createOnMount
+        }));
+      } else if (activeTab === 'my-trips') {
+        mainContent.appendChild(renderMyTrips({
+          onOpenTrip: handleOpenTrip,
+          onPlanNewTrip: () => {
+            activeTab = 'dashboard';
+            shouldOpenCreateModal = true;
+            render();
+          }
         }));
       } else if (activeTab === 'profile') {
         mainContent.appendChild(renderProfile({
@@ -192,58 +247,46 @@ export function createApp() {
       landing.style.textAlign = 'center';
       landing.style.padding = '6rem 1.5rem';
       landing.innerHTML = `
-        <div class="empty-state" style="max-width: 650px; margin: 0 auto; background: var(--color-surface); border-style: solid;">
-          <div class="empty-state-icon">🌍</div>
-          <h2 style="font-size: 2rem; margin-bottom: 0.75rem;">Welcome to Plan My Journey</h2>
-          <p class="empty-state-desc">
-            Collaborative multi-city itinerary planner with smart routing, budget estimation, and frictionless trip sharing.
+        <div class="card animate-fade-in" style="max-width: 600px; margin: 0 auto; padding: 3rem 2rem;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">✈️</div>
+          <h2 style="font-family: var(--font-heading); font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 0.5rem;">
+            Plan the journey. Enjoy the destination.
+          </h2>
+          <p style="color: var(--color-text-muted); margin-bottom: 2rem; font-size: 1.05rem;">
+            Create multi-city itineraries, manage your travel budget, and share your adventures with friends.
           </p>
-          <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-            <button class="btn btn-primary btn-lg" id="landing-btn-explore">Explore Cities</button>
-            <button class="btn btn-secondary btn-lg" id="landing-btn-login">Sign In</button>
-            <button class="btn btn-secondary btn-lg" id="landing-btn-register">Create Account</button>
+          <div style="display: flex; justify-content: center; gap: 1rem;">
+            <button class="btn btn-primary btn-lg" id="btn-landing-login">Sign In / Register</button>
+            <button class="btn btn-secondary btn-lg" id="btn-landing-explore">Explore Cities</button>
           </div>
         </div>
       `;
-
-      landing.querySelector('#landing-btn-explore')?.addEventListener('click', () => {
-        handleTabChange('explore');
-      });
-
-      landing.querySelector('#landing-btn-login')?.addEventListener('click', () => {
+      landing.querySelector('#btn-landing-login')?.addEventListener('click', () => {
         isAuthModalOpen = true;
         authMode = 'login';
         render();
       });
-
-      landing.querySelector('#landing-btn-register')?.addEventListener('click', () => {
-        isAuthModalOpen = true;
-        authMode = 'register';
+      landing.querySelector('#btn-landing-explore')?.addEventListener('click', () => {
+        activeTab = 'explore';
         render();
       });
-
       mainContent.appendChild(landing);
     }
 
     root.appendChild(mainContent);
 
-    // Render Footer
-    const footer = document.createElement('footer');
-    footer.style.borderTop = '1px solid var(--color-border)';
-    footer.style.padding = '1.5rem';
-    footer.style.textAlign = 'center';
-    footer.style.color = 'var(--color-text-subtle)';
-    footer.style.fontSize = '0.85rem';
-    footer.innerHTML = `Plan My Journey &copy; 2026 — Built with modern JWT Auth & Collaborative Itinerary Architecture`;
-    root.appendChild(footer);
-
-    // Render Auth Modal if triggered
+    // Render Auth Modal if open
     if (isAuthModalOpen) {
-      const authView = renderAuthView({
+      const authModal = renderAuthView({
         initialMode: authMode,
-        onSuccess: handleAuthSuccess
+        onSuccess: handleAuthSuccess,
+        onClose: () => {
+          isAuthModalOpen = false;
+          pendingPostAuth = null;
+          render();
+        }
       });
-      root.appendChild(authView);
+      root.appendChild(authModal);
     }
   }
 

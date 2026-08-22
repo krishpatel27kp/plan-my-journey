@@ -5,7 +5,7 @@
 
 import { getToken, clearSession } from './auth.js';
 
-const API_BASE_URL = window.__API_BASE_URL__ || 'http://localhost:5000/api';
+const API_BASE_URL = window.__API_BASE_URL__ || (window.location.port === '5173' ? 'http://localhost:5000/api' : '/api');
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -64,7 +64,27 @@ export const api = {
   getTrips: () => request('/trips'),
   createTrip: (body) => request('/trips', { method: 'POST', body: JSON.stringify(body) }),
   getTripById: (id) => request(`/trips/${id}`),
+  updateTrip: (id, body) => request(`/trips/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteTrip: (id) => request(`/trips/${id}`, { method: 'DELETE' }),
+
+  // Stops & Activities (Pillar B)
+  addStop: (tripId, body) => request(`/trips/${tripId}/stops`, { method: 'POST', body: JSON.stringify(body) }),
 
   // Discovery (Pillar C contract)
-  getCities: (query = '') => request(`/cities${query ? `?query=${encodeURIComponent(query)}` : ''}`, { skipAuth: true })
+  getCities: (query = '', region = '') => {
+    const params = new URLSearchParams();
+    if (query) params.set('search', query);
+    if (region) params.set('region', region);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return request(`/cities${qs}`, { skipAuth: true });
+  },
+  getCityActivities: (cityId, category = '') => {
+    const qs = category ? `?category=${encodeURIComponent(category)}` : '';
+    return request(`/cities/${cityId}/activities${qs}`, { skipAuth: true });
+  },
+
+  // Share & Copy (Pillar C)
+  shareTrip: (tripId) => request(`/trips/${tripId}/share`, { method: 'POST' }),
+  copyTrip: (shareToken) => request(`/trips/${shareToken}/copy`, { method: 'POST' }),
+  getPublicTrip: (shareToken) => request(`/public/trips/${shareToken}`, { skipAuth: true })
 };

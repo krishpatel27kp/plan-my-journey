@@ -4,7 +4,7 @@
  */
 import { api } from '../api.js';
 
-export function renderDashboard({ user, onNavigate }) {
+export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMount = false }) {
   const container = document.createElement('div');
   container.className = 'main-container animate-fade-in';
   container.style.maxWidth = '1280px';
@@ -13,7 +13,6 @@ export function renderDashboard({ user, onNavigate }) {
   let trips = [];
   let isLoading = true;
   let error = null;
-  let isCreateModalOpen = false;
 
   async function fetchTrips() {
     isLoading = true;
@@ -25,6 +24,9 @@ export function renderDashboard({ user, onNavigate }) {
       trips = Array.isArray(res) ? res : (res?.trips || []);
       isLoading = false;
       render();
+      if (openCreateOnMount) {
+        openCreateModal();
+      }
     } catch (err) {
       console.warn('Trips fetch error:', err.message);
       error = err.message;
@@ -177,9 +179,9 @@ export function renderDashboard({ user, onNavigate }) {
     const tripImg = trip.imageUrl || defaultImg;
 
     return `
-      <article class="card animate-fade-in" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.25s ease, box-shadow 0.25s ease;">
+      <article class="card trip-interactive-card animate-fade-in" data-id="${escapeHtml(trip.id)}" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: transform 0.25s ease, box-shadow 0.25s ease; border: 1px solid var(--color-border);">
         <div style="position: relative; height: 180px; overflow: hidden;">
-          <img src="${escapeHtml(tripImg)}" alt="${escapeHtml(trip.title)}" style="width: 100%; height: 100%; object-fit: cover;" />
+          <img src="${escapeHtml(tripImg)}" alt="${escapeHtml(trip.title)}" onerror="this.onerror=null; this.src='${defaultImg}';" style="width: 100%; height: 100%; object-fit: cover;" />
           <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(19,27,46,0.95) 0%, rgba(19,27,46,0.2) 60%, rgba(0,0,0,0.4) 100%);"></div>
 
           <div style="position: absolute; top: 0.75rem; right: 0.75rem;">
@@ -201,13 +203,13 @@ export function renderDashboard({ user, onNavigate }) {
             ${escapeHtml(trip.description || 'Custom multi-city journey.')}
           </p>
 
-          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border);">
-            <button class="btn btn-secondary btn-sm btn-share-trip" data-id="${escapeHtml(trip.id)}" style="font-size: 0.8rem;">
-              🔗 Share Link
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border); gap: 0.5rem;">
+            <button class="btn btn-primary btn-sm btn-open-itinerary" data-id="${escapeHtml(trip.id)}" style="flex: 1; justify-content: center; font-size: 0.82rem;">
+              View Itinerary →
             </button>
-            <span style="font-size: 0.8rem; color: var(--color-primary-light); font-weight: 600;">
-              ${trip.stops?.length || 1} Stops
-            </span>
+            <button class="btn btn-secondary btn-sm btn-share-trip" data-id="${escapeHtml(trip.id)}" style="font-size: 0.8rem;" title="Share Itinerary">
+              🔗
+            </button>
           </div>
         </div>
       </article>
@@ -216,23 +218,12 @@ export function renderDashboard({ user, onNavigate }) {
 
   async function handleShareTrip(tripId, buttonEl) {
     const originalText = buttonEl.textContent;
-    buttonEl.textContent = '⏳ Sharing...';
+    buttonEl.textContent = '⏳';
     try {
-      const API_BASE = window.__API_BASE_URL__ || (window.location.port === '5173' ? 'http://localhost:5000/api' : '/api');
-      const token = localStorage.getItem('pmj_token');
-      const res = await fetch(`${API_BASE}/trips/${tripId}/share`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error?.message || 'Failed to generate share link');
-
-      const fullUrl = data.publicUrl || `${window.location.origin}/share/${data.shareToken}`;
+      const res = await api.shareTrip(tripId);
+      const fullUrl = res.publicUrl || `${window.location.origin}/share/${res.shareToken}`;
       await navigator.clipboard.writeText(fullUrl);
-      buttonEl.textContent = '✓ Link Copied!';
+      buttonEl.textContent = '✓ Copied!';
       setTimeout(() => { buttonEl.textContent = originalText; }, 2500);
     } catch (err) {
       alert('Share error: ' + err.message);
@@ -242,6 +233,7 @@ export function renderDashboard({ user, onNavigate }) {
 
   function openCreateModal() {
     const modalHost = container.querySelector('#modal-host');
+    if (!modalHost) return;
     const modal = document.createElement('div');
     modal.className = 'modal-backdrop animate-fade-in';
     modal.style.position = 'fixed';
@@ -308,7 +300,7 @@ export function renderDashboard({ user, onNavigate }) {
     modal.querySelector('#create-trip-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const submitBtn = modal.querySelector('#btn-submit-trip');
-      submitBtn.textContent = 'Saving...';
+      submitBtn.textContent = 'Creating Itinerary...';
       submitBtn.disabled = true;
 
       const body = {
@@ -320,9 +312,13 @@ export function renderDashboard({ user, onNavigate }) {
       };
 
       try {
-        await api.createTrip(body);
+        const createdTrip = await api.createTrip(body);
         modal.remove();
-        fetchTrips();
+        if (onOpenTrip) {
+          onOpenTrip(createdTrip.id, createdTrip);
+        } else {
+          fetchTrips();
+        }
       } catch (err) {
         alert('Error creating trip: ' + err.message);
         submitBtn.textContent = 'Create Trip';
@@ -332,6 +328,18 @@ export function renderDashboard({ user, onNavigate }) {
 
     modalHost.appendChild(modal);
   }
+
+  // Bind card clicks
+  setTimeout(() => {
+    container.querySelectorAll('.trip-interactive-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-share-trip')) return;
+        const tripId = card.getAttribute('data-id');
+        const selected = trips.find(t => t.id === tripId);
+        if (onOpenTrip) onOpenTrip(tripId, selected);
+      });
+    });
+  }, 100);
 
   fetchTrips();
   return container;

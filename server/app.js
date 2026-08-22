@@ -41,8 +41,8 @@ try {
   expApp.use('/api/auth', authRouter);
   expApp.use('/api/users', usersRouter);
   expApp.use('/api/cities', citiesRouter);
-  expApp.use('/api/trips', shareRouter);
   expApp.use('/api/trips', tripsRouter);
+  expApp.use('/api/trips', shareRouter);
   expApp.use('/api/public', publicRouter);
 
   // Fallback 404 handler

@@ -23,7 +23,10 @@ export function renderNavbar({ user, activeTab, onTabChange, onLogout, onOpenAut
       </button>
       ${user ? `
         <button class="nav-btn ${activeTab === 'dashboard' ? 'active' : ''}" id="nav-tab-dashboard">
-          Trips Dashboard
+          Dashboard
+        </button>
+        <button class="nav-btn ${activeTab === 'my-trips' ? 'active' : ''}" id="nav-tab-my-trips">
+          My Journeys
         </button>
         <button class="nav-btn ${activeTab === 'profile' ? 'active' : ''}" id="nav-tab-profile">
           Profile & Settings
@@ -32,15 +35,17 @@ export function renderNavbar({ user, activeTab, onTabChange, onLogout, onOpenAut
     </nav>
 
     ${user ? `
-      <div style="display: flex; align-items: center; gap: 1rem;">
-        <div style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;" id="nav-user-badge">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <button class="btn btn-primary btn-sm" id="nav-btn-create-trip" style="padding: 0.4rem 0.85rem; font-size: 0.82rem; font-weight: 700;">
+          + Plan New Trip
+        </button>
+        <div style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; padding: 0.25rem 0.5rem; border-radius: var(--radius-md);" id="nav-user-badge">
           <div class="avatar">${avatarHtml}</div>
           <div style="display: flex; flex-direction: column; text-align: left; line-height: 1.2;">
-            <span style="font-weight: 600; font-size: 0.9rem;">${escapeHtml(user.name)}</span>
-            <span style="font-size: 0.75rem; color: var(--color-text-muted);">${escapeHtml(user.email)}</span>
+            <span style="font-weight: 600; font-size: 0.88rem; color: #fff;">${escapeHtml(user.name)}</span>
           </div>
         </div>
-        <button class="btn btn-secondary btn-sm" id="btn-logout" title="Log out">
+        <button class="btn btn-secondary btn-sm" id="btn-logout" title="Log out" style="font-size: 0.8rem; padding: 0.4rem 0.75rem;">
           Sign Out
         </button>
       </div>
@@ -57,6 +62,8 @@ export function renderNavbar({ user, activeTab, onTabChange, onLogout, onOpenAut
   nav.querySelector('#nav-brand')?.addEventListener('click', () => onTabChange(user ? 'dashboard' : 'explore'));
   nav.querySelector('#nav-tab-explore')?.addEventListener('click', () => onTabChange('explore'));
   nav.querySelector('#nav-tab-dashboard')?.addEventListener('click', () => onTabChange('dashboard'));
+  nav.querySelector('#nav-tab-my-trips')?.addEventListener('click', () => onTabChange('my-trips'));
+  nav.querySelector('#nav-btn-create-trip')?.addEventListener('click', () => onTabChange('create-trip-modal'));
   nav.querySelector('#nav-tab-profile')?.addEventListener('click', () => onTabChange('profile'));
   nav.querySelector('#nav-user-badge')?.addEventListener('click', () => onTabChange('profile'));
   nav.querySelector('#btn-logout')?.addEventListener('click', onLogout);
