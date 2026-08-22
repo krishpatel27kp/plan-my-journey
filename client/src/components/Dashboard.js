@@ -23,23 +23,6 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
     try {
       const res = await api.getTrips();
       trips = Array.isArray(res) ? res : (res?.trips || []);
-      
-      // If user has no trips yet, provide rich demo trips matching screenshot so they see the full experience
-      if (trips.length === 0) {
-        trips = [
-          {
-            id: 'trip-goa-escape',
-            title: 'Goa Escape',
-            startDate: '2026-09-10',
-            endDate: '2026-09-15',
-            budget: 50000,
-            spent: 42700,
-            destinations: ['North Goa', 'South Goa', 'Panjim'],
-            imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
-            description: 'Coastal relaxation, water sports, and Portuguese heritage tour.'
-          }
-        ];
-      }
 
       isLoading = false;
       render();
@@ -48,31 +31,18 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
       }
     } catch (err) {
       console.warn('Trips fetch error:', err.message);
-      trips = [
-        {
-          id: 'trip-goa-escape',
-          title: 'Goa Escape',
-          startDate: '2026-09-10',
-          endDate: '2026-09-15',
-          budget: 50000,
-          spent: 42700,
-          destinations: ['North Goa', 'South Goa', 'Panjim'],
-          imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80',
-          description: 'Coastal relaxation, water sports, and Portuguese heritage tour.'
-        }
-      ];
+      trips = [];
       isLoading = false;
       render();
     }
   }
 
   function calculateStats() {
-    const upcomingCount = trips.length > 0 ? trips.length : 1;
+    const upcomingCount = trips.length;
     let totalDestinations = 0;
     trips.forEach(t => {
-      totalDestinations += (t.stops?.length || t.destinations?.length || 3);
+      totalDestinations += t.stops?.length || 0;
     });
-    if (totalDestinations < 12) totalDestinations = 12;
 
     return {
       upcomingCount,
@@ -83,23 +53,26 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
   function render() {
     const stats = calculateStats();
     const userName = user?.name ? user.name.split(' ')[0] : 'Alex';
-    const featuredTrip = trips[0] || {
-      id: 'trip-goa-escape',
-      title: 'Goa Escape',
-      startDate: '2026-09-10',
-      endDate: '2026-09-15',
-      budget: 50000,
-      spent: 42700,
-      destinations: ['North Goa', 'South Goa', 'Panjim'],
-      imageUrl: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&w=800&q=80'
-    };
+    const featuredTrip = trips[0];
 
-    const spentAmount = featuredTrip.spent || 42700;
-    const totalBudget = featuredTrip.budget || 50000;
+    if (isLoading) {
+      container.innerHTML = `<div style="text-align:center;padding:6rem 0;"><div class="spinner" style="width:40px;height:40px;border:3px solid rgba(37,99,235,.2);border-top-color:var(--color-primary);border-radius:50%;margin:0 auto;"></div><p style="color:#64748b;margin-top:1rem;">Loading your trips...</p></div>`;
+      return;
+    }
+
+    if (!featuredTrip) {
+      container.innerHTML = `<div style="margin-bottom:1.5rem;padding-top:.5rem;"><h1 style="font-family:var(--font-heading);font-size:2.1rem;font-weight:900;color:#0f172a;">Good morning, ${escapeHtml(userName)}</h1><p style="color:#475569;margin-top:.35rem;">Ready to build your next adventure?</p></div><button id="btn-open-create-trip" class="btn btn-primary" style="width:100%;margin-bottom:2rem;">+ Plan New Trip</button><div class="empty-state" style="background:#fff;"><div class="empty-state-icon">🌍</div><h3>No trips planned yet</h3><p class="empty-state-desc">Create a trip to start building your itinerary.</p><button id="btn-empty-create-trip" class="btn btn-primary">+ Create your first trip</button></div>`;
+      container.querySelector('#btn-open-create-trip')?.addEventListener('click', openCreateModal);
+      container.querySelector('#btn-empty-create-trip')?.addEventListener('click', openCreateModal);
+      return;
+    }
+
+    const spentAmount = Number(featuredTrip.spent) || 0;
+    const totalBudget = Number(featuredTrip.budget) || 0;
     const percentSpent = Math.round((spentAmount / totalBudget) * 100);
     const destinationListStr = (featuredTrip.destinations && featuredTrip.destinations.length > 0)
       ? featuredTrip.destinations.join(' • ')
-      : 'North Goa • South Goa • Panjim';
+      : 'No destinations added yet';
 
     container.innerHTML = `
       <!-- Greeting Section -->
@@ -180,7 +153,7 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
             <!-- Dates Pill on Top Left -->
             <div style="position: absolute; top: 0.85rem; left: 0.85rem;">
               <span class="badge" style="background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); color: #0f172a; font-weight: 700; font-size: 0.8rem; padding: 0.35rem 0.75rem; border: 1px solid rgba(0,0,0,0.06);">
-                📅 10 Sep – 15 Sep
+                📅 ${escapeHtml(featuredTrip.startDate ? `${formatDate(featuredTrip.startDate)}${featuredTrip.endDate ? ` – ${formatDate(featuredTrip.endDate)}` : ''}` : 'Flexible dates')}
               </span>
             </div>
           </div>
@@ -191,7 +164,7 @@ export function renderDashboard({ user, onNavigate, onOpenTrip, openCreateOnMoun
                 ${escapeHtml(featuredTrip.title)}
               </h3>
               <span class="badge" style="background: #e6f4f2; color: #006d64; font-size: 0.8rem; font-weight: 700; padding: 0.3rem 0.65rem;">
-                3 Destinations
+                ${featuredTrip.stops?.length || 0} Destinations
               </span>
             </div>
 

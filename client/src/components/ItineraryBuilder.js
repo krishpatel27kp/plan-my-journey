@@ -83,7 +83,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     }
 
     const financials = calculateFinancials();
-    const stops = trip.stops || [];
+    const stops = [...(trip.stops || [])].sort((a, b) => (a.stopOrder || 0) - (b.stopOrder || 0));
     const datesStr = trip.startDate && trip.endDate
       ? `${formatDate(trip.startDate)} – ${formatDate(trip.endDate)}`
       : 'Flexible Dates';
@@ -184,8 +184,12 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
       btn.addEventListener('click', async () => {
         const stopId = btn.getAttribute('data-stop-id');
         if (confirm('Are you sure you want to remove this city and all its activities?')) {
-          await api.deleteStop(stopId);
-          await fetchTripDetails();
+          try {
+            await api.deleteStop(stopId);
+            await fetchTripDetails();
+          } catch (err) {
+            alert('Could not remove stop: ' + err.message);
+          }
         }
       });
     });
@@ -193,8 +197,12 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     container.querySelectorAll('.btn-delete-act').forEach(btn => {
       btn.addEventListener('click', async () => {
         const actId = btn.getAttribute('data-act-id');
-        await api.deleteItineraryActivity(actId);
-        await fetchTripDetails();
+        try {
+          await api.deleteItineraryActivity(actId);
+          await fetchTripDetails();
+        } catch (err) {
+          alert('Could not remove activity: ' + err.message);
+        }
       });
     });
   }
@@ -362,6 +370,10 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
     if (!stops.length) {
       return `<div class="empty-state animate-fade-in"><div class="empty-state-icon">🗺️</div><h3>No stops to timeline yet</h3><p class="empty-state-desc">Add a destination to see the chronological route timeline.</p><button class="btn btn-primary" id="btn-add-stop-empty">+ Add First City</button></div>`;
     }
+    const timelineStops = [...stops].sort((a, b) => (a.stopOrder || 0) - (b.stopOrder || 0)).map(stop => ({
+      ...stop,
+      activities: [...(stop.activities || [])].sort((a, b) => `${a.date || stop.startDate || ''}${a.startTime || ''}`.localeCompare(`${b.date || stop.startDate || ''}${b.startTime || ''}`))
+    }));
     return `
       <div class="card animate-fade-in" style="padding: 2rem; background: #ffffff; border: 1px solid var(--color-border); box-shadow: var(--shadow-sm);">
         <h2 style="font-family: var(--font-heading); font-size: 1.6rem; font-weight: 900; color: #0f172a; margin-bottom: 0.5rem;">
@@ -373,7 +385,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
 
         <!-- Route Nodes Ribbon -->
         <div style="display: flex; align-items: center; gap: 1rem; overflow-x: auto; padding: 1.5rem; background: #f8fafc; border-radius: var(--radius-lg); border: 1px solid var(--color-border); margin-bottom: 2.5rem;">
-          ${stops.map((stop, idx) => `
+          ${timelineStops.map((stop, idx) => `
             <div style="display: flex; align-items: center; gap: 1rem; flex-shrink: 0;">
               <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
                 <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--color-primary); color: #fff; font-weight: 800; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.3); font-size: 1rem;">
@@ -389,7 +401,7 @@ export function renderItineraryBuilder({ tripId, initialTrip, onBack }) {
 
         <!-- Detailed Chronological Timeline -->
         <div style="display: flex; flex-direction: column; gap: 1.25rem;">
-          ${stops.map((stop, idx) => `
+          ${timelineStops.map((stop, idx) => `
             <div style="padding: 1.25rem 1.5rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3 style="font-family: var(--font-heading); font-size: 1.2rem; font-weight: 800; color: #0f172a;">
