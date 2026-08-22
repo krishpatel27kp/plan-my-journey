@@ -373,8 +373,8 @@ router.get('/:tripId/budget', async (req, res, next) => {
       `SELECT ia.activity_date AS date, ia.cost, a.category, 'activity' AS source
        FROM itinerary_activities ia JOIN trip_stops s ON s.id = ia.trip_stop_id
        LEFT JOIN activities a ON a.id = ia.activity_id WHERE s.trip_id = $1
-       UNION ALL SELECT expense_date AS date, amount AS cost, category, 'expense' AS source
-       FROM expenses WHERE trip_id = $1`, [req.params.tripId]
+      UNION ALL SELECT expense_date AS date, amount AS cost, category, 'expense' AS source
+      FROM expenses WHERE trip_id = $2`, [req.params.tripId, req.params.tripId]
     );
     const byCategory = { transport: 0, accommodation: 0, activities: 0, food: 0, other: 0 };
     const days = {};
@@ -383,8 +383,8 @@ router.get('/:tripId/budget', async (req, res, next) => {
       let bucket = String(row.category || '').toLowerCase();
       if (bucket.includes('transport') || bucket.includes('travel')) bucket = 'transport';
       else if (bucket.includes('accommod') || bucket.includes('hotel') || bucket.includes('lodg')) bucket = 'accommodation';
-      else if (row.source === 'activity' || bucket.includes('activ') || bucket.includes('sight') || bucket.includes('tour')) bucket = 'activities';
       else if (bucket.includes('food') || bucket.includes('dining') || bucket.includes('meal')) bucket = 'food';
+      else if (row.source === 'activity' || bucket.includes('activ') || bucket.includes('sight') || bucket.includes('tour')) bucket = 'activities';
       else bucket = 'other';
       byCategory[bucket] += amount;
       if (row.date) days[row.date] = (days[row.date] || 0) + amount;

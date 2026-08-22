@@ -1,5 +1,6 @@
 const path = require('path');
 const { authMiddleware } = require('./middleware/auth');
+const db = require('./db');
 
 let app;
 
@@ -262,7 +263,44 @@ try {
           return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Shared trip not found' } });
         }
 
-        // 7. Protected Trip & Sharing Routes (Pillars B & C)
+        // 7. Protected Itinerary Activity Routes (fallback handler)
+        if (pathname.startsWith('/api/stops/') || pathname.startsWith('/api/itinerary-activities/')) {
+          return authMiddleware(req, res, async () => {
+            if (pathname.startsWith('/api/stops/') && pathname.endsWith('/activities') && req.method === 'POST') {
+              const parts = pathname.split('/');
+              const stopId = parts[3];
+              const { activityId, date, startTime, endTime, cost = 0 } = req.body || {};
+              const stop = await db.query(`SELECT s.id, s.city_id FROM trip_stops s JOIN trips t ON t.id = s.trip_id WHERE s.id = $1 AND t.user_id = $2`, [stopId, req.user.userId]);
+              if (!stop.rows.length) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Stop not found' } });
+              if (!activityId || !date) return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'activityId and date are required' } });
+              const activity = await db.query('SELECT id, name, category FROM activities WHERE id = $1 AND city_id = $2', [activityId, stop.rows[0].city_id]);
+              if (!activity.rows.length) return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Activity must belong to the stop city' } });
+              if (Number.isNaN(Number(cost)) || Number(cost) < 0) return res.status(400).json({ error: { code: 'VALIDATION_ERROR', message: 'Cost must be a non-negative number' } });
+              const order = await db.query('SELECT COALESCE(MAX(order_index), 0) + 1 AS next_order FROM itinerary_activities WHERE trip_stop_id = $1', [stopId]);
+              const result = await db.query(`INSERT INTO itinerary_activities (id, trip_stop_id, activity_id, title, activity_date, start_time, end_time, order_index, cost) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`, [crypto.randomUUID(), stopId, activityId, activity.rows[0].name, date, startTime || null, endTime || null, Number(order.rows[0].next_order), Number(cost)]);
+              const row = result.rows[0];
+              return res.status(201).json({ id: row.id, activityId: row.activity_id, title: row.title, category: activity.rows[0].category, date: row.activity_date, startTime: row.start_time, endTime: row.end_time, cost: Number(row.cost) || 0 });
+            }
+
+            if (pathname.startsWith('/api/stops/') && req.method === 'DELETE') {
+              const stopId = pathname.split('/')[3];
+              const result = await db.query('DELETE FROM trip_stops WHERE id = $1 AND trip_id IN (SELECT id FROM trips WHERE user_id = $2) RETURNING id', [stopId, req.user.userId]);
+              if (!result.rows.length) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Stop not found' } });
+              return res.status(200).json({ id: stopId, deleted: true });
+            }
+
+            if (pathname.startsWith('/api/itinerary-activities/') && req.method === 'DELETE') {
+              const activityId = pathname.split('/')[3];
+              const result = await db.query('DELETE FROM itinerary_activities WHERE id = $1 AND trip_stop_id IN (SELECT s.id FROM trip_stops s JOIN trips t ON t.id = s.trip_id WHERE t.user_id = $2) RETURNING id', [activityId, req.user.userId]);
+              if (!result.rows.length) return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Itinerary activity not found' } });
+              return res.status(200).json({ id: activityId });
+            }
+
+            return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found' } });
+          });
+        }
+
+        // 8. Protected Trip & Sharing Routes (Pillars B & C)
         if (pathname.startsWith('/api/trips')) {
           return authMiddleware(req, res, async () => {
             const { Trip, TripStop, City } = require('./models');
@@ -393,6 +431,51 @@ try {
               return res.status(201).json(stop.toJSON());
             }
 
+            // GET /api/trips/:tripId/budget
+            if (pathname.endsWith('/budget') && req.method === 'GET') {
+              const tripId = pathname.split('/')[3];
+              const trip = await Trip.findByIdAndUserId(tripId, req.user.userId);
+              if (!trip) return sendNotFoundError(res, 'Trip not found');
+              const costs = await db.query(`SELECT ia.activity_date AS date, ia.cost, a.category, 'activity' AS source FROM itinerary_activities ia JOIN trip_stops s ON s.id = ia.trip_stop_id LEFT JOIN activities a ON a.id = ia.activity_id WHERE s.trip_id = $1 UNION ALL SELECT expense_date AS date, amount AS cost, category, 'expense' AS source FROM expenses WHERE trip_id = $2`, [tripId, tripId]);
+              const byCategory = { transport: 0, accommodation: 0, activities: 0, food: 0, other: 0 };
+              const days = {};
+              let totalSpent = 0;
+              for (const row of costs.rows) {
+                const amount = Number(row.cost) || 0;
+                totalSpent += amount;
+                const category = String(row.category || '').toLowerCase();
+                const bucket = category.includes('transport') || category.includes('travel') ? 'transport' : category.includes('accommod') || category.includes('hotel') || category.includes('lodg') ? 'accommodation' : category.includes('food') || category.includes('dining') || category.includes('meal') ? 'food' : row.source === 'activity' || category.includes('activ') || category.includes('sight') || category.includes('tour') ? 'activities' : 'other';
+                byCategory[bucket] += amount;
+                if (row.date) days[row.date] = (days[row.date] || 0) + amount;
+              }
+              const start = trip.startDate ? new Date(`${trip.startDate}T00:00:00Z`) : null;
+              const end = trip.endDate ? new Date(`${trip.endDate}T00:00:00Z`) : null;
+              const tripLength = start && end ? Math.max(1, Math.floor((end - start) / 86400000) + 1) : 1;
+              const budget = Number(trip.budget) || 0;
+              return res.status(200).json({ budget, totalSpent, remaining: budget - totalSpent, byCategory, overBudgetDays: Object.keys(days).filter(date => days[date] > budget / tripLength).sort() });
+            }
+
+            // PUT /api/trips/:tripId/stops/reorder
+            if (pathname.endsWith('/stops/reorder') && req.method === 'PUT') {
+              const tripId = pathname.split('/')[3];
+              const stopIds = req.body?.stopIds;
+              if (!UUID_REGEX.test(tripId)) return sendNotFoundError(res, 'Trip not found');
+              if (!Array.isArray(stopIds) || stopIds.length !== new Set(stopIds).size) {
+                return sendValidationError(res, 'stopIds must be a list of unique stop IDs');
+              }
+              const trip = await Trip.findByIdAndUserId(tripId, req.user.userId);
+              if (!trip) return sendNotFoundError(res, 'Trip not found');
+              const owned = await db.query('SELECT id FROM trip_stops WHERE trip_id = $1', [tripId]);
+              const ownedIds = new Set(owned.rows.map(row => row.id));
+              if (stopIds.length !== ownedIds.size || stopIds.some(id => !ownedIds.has(id))) {
+                return sendValidationError(res, 'stopIds must contain every stop in the trip exactly once');
+              }
+              for (let index = 0; index < stopIds.length; index++) {
+                await db.query('UPDATE trip_stops SET stop_order = $1 WHERE id = $2 AND trip_id = $3', [index + 1, stopIds[index], tripId]);
+              }
+              return res.status(200).json({ stopIds });
+            }
+
             // POST /api/trips (Create Trip)
             if (pathname === '/api/trips' && req.method === 'POST') {
               const validation = validateCreateTrip(req.body);
@@ -427,7 +510,11 @@ try {
               if (!trip) return sendNotFoundError(res, 'Trip not found');
               const stops = await TripStop.findByTripId(id);
               const data = trip.toJSON();
-              data.stops = stops.map(s => s.toJSON());
+              data.stops = [];
+              for (const stop of stops) {
+                const activities = await db.query('SELECT ia.*, a.category FROM itinerary_activities ia LEFT JOIN activities a ON a.id = ia.activity_id WHERE ia.trip_stop_id = $1 ORDER BY ia.activity_date ASC, ia.start_time ASC, ia.order_index ASC', [stop.id]);
+                data.stops.push({ ...stop.toJSON(), activities: activities.rows.map(row => ({ id: row.id, activityId: row.activity_id, title: row.title, category: row.category || null, date: row.activity_date, startTime: row.start_time, endTime: row.end_time, cost: Number(row.cost) || 0, notes: row.notes, status: row.status })) });
+              }
               return res.status(200).json(data);
             }
 
