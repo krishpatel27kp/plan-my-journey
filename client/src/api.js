@@ -55,30 +55,28 @@ export const api = {
   // Auth endpoints (Pillar A)
   register: (body) => request('/auth/register', { method: 'POST', body: JSON.stringify(body), skipAuth: true }),
   login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body), skipAuth: true }),
+  googleAuth: (credential) => request('/auth/google', { method: 'POST', body: JSON.stringify({ credential }), skipAuth: true }),
 
   // User Profile endpoints (Pillar A)
   getMe: () => request('/users/me'),
   updateMe: (body) => request('/users/me', { method: 'PUT', body: JSON.stringify(body) }),
 
-  // Trips endpoints (Pillar B contract)
+  // Trips endpoints (Pillar B)
   getTrips: () => request('/trips'),
-  createTrip: (body) => request('/trips', { method: 'POST', body: JSON.stringify(body) }),
   getTripById: (id) => request(`/trips/${id}`),
+  createTrip: (body) => request('/trips', { method: 'POST', body: JSON.stringify(body) }),
   updateTrip: (id, body) => request(`/trips/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteTrip: (id) => request(`/trips/${id}`, { method: 'DELETE' }),
 
   // Stops & Activities (Pillar B)
   addStop: (tripId, body) => request(`/trips/${tripId}/stops`, { method: 'POST', body: JSON.stringify(body) }),
-  deleteStop: (stopId) => request(`/stops/${stopId}`, { method: 'DELETE' }),
-  addStopActivity: (stopId, body) => request(`/stops/${stopId}/activities`, { method: 'POST', body: JSON.stringify(body) }),
-  reorderStops: (tripId, stopIds) => request(`/trips/${tripId}/stops/reorder`, { method: 'PUT', body: JSON.stringify({ stopIds }) }),
-  deleteItineraryActivity: (id) => request(`/itinerary-activities/${id}`, { method: 'DELETE' }),
-  getTripBudget: (tripId) => request(`/trips/${tripId}/budget`),
+  getTripStops: (tripId) => request(`/trips/${tripId}/stops`),
+  addActivityToStop: (stopId, body) => request(`/stops/${stopId}/activities`, { method: 'POST', body: JSON.stringify(body) }),
 
-  // Discovery (Pillar C contract)
-  getCities: (query = '', region = '') => {
+  // Discovery & Search endpoints (Pillar C)
+  getCities: (search = '', region = '') => {
     const params = new URLSearchParams();
-    if (query) params.set('search', query);
+    if (search) params.set('search', search);
     if (region) params.set('region', region);
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request(`/cities${qs}`, { skipAuth: true });
@@ -88,8 +86,8 @@ export const api = {
     return request(`/cities/${cityId}/activities${qs}`, { skipAuth: true });
   },
 
-  // Share & Copy (Pillar C)
+  // Sharing & Copying endpoints (Pillar C)
   shareTrip: (tripId) => request(`/trips/${tripId}/share`, { method: 'POST' }),
-  copyTrip: (shareToken) => request(`/trips/${shareToken}/copy`, { method: 'POST' }),
-  getPublicTrip: (shareToken) => request(`/public/trips/${shareToken}`, { skipAuth: true })
+  getPublicTrip: (shareToken) => request(`/public/trips/${shareToken}`, { skipAuth: true }),
+  copyTrip: (shareToken) => request(`/trips/${shareToken}/copy`, { method: 'POST' })
 };
