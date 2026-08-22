@@ -22,4 +22,41 @@ router.post('/:stopId/activities', authMiddleware, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// DELETE /api/stops/:stopId (when mounted at /api/stops)
+router.delete('/:stopId', authMiddleware, async (req, res, next) => {
+  try {
+    if (req.baseUrl.endsWith('/itinerary-activities')) return next();
+    const result = await db.query(
+      `DELETE FROM trip_stops WHERE id = $1 AND trip_id IN
+       (SELECT id FROM trips WHERE user_id = $2) RETURNING id`,
+      [req.params.stopId, req.user.userId]
+    );
+    if (!result.rows.length) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Stop not found' } });
+    }
+    return res.status(200).json({ id: req.params.stopId, deleted: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// DELETE /api/itinerary-activities/:id (when mounted at /api/itinerary-activities)
+router.delete('/:id', authMiddleware, async (req, res, next) => {
+  try {
+    const result = await db.query(
+      `DELETE FROM itinerary_activities
+       WHERE id = $1 AND trip_stop_id IN
+       (SELECT s.id FROM trip_stops s JOIN trips t ON t.id = s.trip_id WHERE t.user_id = $2)
+       RETURNING id`,
+      [req.params.id, req.user.userId]
+    );
+    if (!result.rows.length) {
+      return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Itinerary activity not found' } });
+    }
+    return res.status(200).json({ id: req.params.id });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

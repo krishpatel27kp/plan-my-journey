@@ -91,6 +91,9 @@ router.get('/', async (req, res, next) => {
  */
 router.get('/:id', async (req, res, next) => {
   try {
+    // Express 5 permits a parameter to span nested segments. Let the more
+    // specific routes registered below handle /:tripId/budget instead.
+    if (req.path.includes('/')) return next();
     const { id } = req.params;
 
     // Reject non-UUID IDs immediately with 404
@@ -144,6 +147,8 @@ router.get('/:id', async (req, res, next) => {
  */
 router.put('/:id', async (req, res, next) => {
   try {
+    // Let /:tripId/stops/reorder reach its specific handler below.
+    if (req.path.includes('/')) return next();
     const { id } = req.params;
 
     if (!UUID_REGEX.test(id)) {
@@ -175,6 +180,8 @@ router.put('/:id', async (req, res, next) => {
  */
 router.delete('/:id', async (req, res, next) => {
   try {
+    // Let nested itinerary routes reach their specific handlers below.
+    if (req.path.includes('/')) return next();
     const { id } = req.params;
 
     if (!UUID_REGEX.test(id)) {

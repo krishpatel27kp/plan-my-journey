@@ -46,6 +46,7 @@ try {
   expApp.use('/api/trips', shareRouter);
   expApp.use('/api/public', publicRouter);
   expApp.use('/api/stops', stopActivitiesRouter);
+  expApp.use('/api/itinerary-activities', stopActivitiesRouter);
 
   // Fallback 404 handler
   expApp.use((req, res) => {
