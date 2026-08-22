@@ -64,6 +64,11 @@ export const api = {
   getTrips: () => request('/trips'),
   createTrip: (body) => request('/trips', { method: 'POST', body: JSON.stringify(body) }),
   getTripById: (id) => request(`/trips/${id}`),
+  addStop: (tripId, body) => request(`/trips/${tripId}/stops`, { method: 'POST', body: JSON.stringify(body) }),
+  addStopActivity: (stopId, body) => request(`/stops/${stopId}/activities`, { method: 'POST', body: JSON.stringify(body) }),
+  reorderStops: (tripId, stopIds) => request(`/trips/${tripId}/stops/reorder`, { method: 'PUT', body: JSON.stringify({ stopIds }) }),
+  deleteItineraryActivity: (id) => request(`/itinerary-activities/${id}`, { method: 'DELETE' }),
+  getTripBudget: (tripId) => request(`/trips/${tripId}/budget`),
 
   // Discovery (Pillar C contract)
   getCities: (query = '') => request(`/cities${query ? `?query=${encodeURIComponent(query)}` : ''}`, { skipAuth: true })

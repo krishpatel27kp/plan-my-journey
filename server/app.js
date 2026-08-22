@@ -14,6 +14,7 @@ try {
   const tripsRouter = require('./routes/trips');
   const shareRouter = require('./routes/share');
   const publicRouter = require('./routes/public');
+  const stopActivitiesRouter = require('./routes/stopActivities');
 
   expApp.use(cors());
   expApp.use(express.json());
@@ -44,6 +45,7 @@ try {
   expApp.use('/api/trips', shareRouter);
   expApp.use('/api/trips', tripsRouter);
   expApp.use('/api/public', publicRouter);
+  expApp.use('/api/stops', stopActivitiesRouter);
 
   // Fallback 404 handler
   expApp.use((req, res) => {

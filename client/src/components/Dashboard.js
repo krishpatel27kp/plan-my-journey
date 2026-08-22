@@ -3,6 +3,7 @@
  * Features Stats Bento, Rich Trip Cards, Quick Share Actions, and New Trip Modal.
  */
 import { api } from '../api.js';
+import { renderItineraryBuilder } from './ItineraryBuilder.js';
 
 export function renderDashboard({ user, onNavigate }) {
   const container = document.createElement('div');
@@ -156,6 +157,9 @@ export function renderDashboard({ user, onNavigate }) {
     container.querySelector('#btn-empty-create-trip')?.addEventListener('click', openCreateModal);
     container.querySelector('#btn-dashboard-explore')?.addEventListener('click', () => onNavigate('explore'));
     container.querySelector('#btn-empty-explore')?.addEventListener('click', () => onNavigate('explore'));
+    container.querySelectorAll('.btn-open-itinerary').forEach(button => button.addEventListener('click', () => {
+      container.querySelector('#modal-host').appendChild(renderItineraryBuilder(button.dataset.id, () => container.querySelector('#modal-host').lastElementChild.remove()));
+    }));
 
     // Bind share & action buttons
     container.querySelectorAll('.btn-share-trip').forEach(btn => {
@@ -202,9 +206,10 @@ export function renderDashboard({ user, onNavigate }) {
           </p>
 
           <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border);">
-            <button class="btn btn-secondary btn-sm btn-share-trip" data-id="${escapeHtml(trip.id)}" style="font-size: 0.8rem;">
-              🔗 Share Link
-            </button>
+            <div style="display:flex;gap:.5rem;align-items:center;">
+              <button class="btn btn-secondary btn-sm btn-share-trip" data-id="${escapeHtml(trip.id)}" style="font-size: 0.8rem;">🔗 Share Link</button>
+              <button class="btn btn-primary btn-sm btn-open-itinerary" data-id="${escapeHtml(trip.id)}">Open itinerary</button>
+            </div>
             <span style="font-size: 0.8rem; color: var(--color-primary-light); font-weight: 600;">
               ${trip.stops?.length || 1} Stops
             </span>

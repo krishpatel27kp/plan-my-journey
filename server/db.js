@@ -22,6 +22,7 @@ function loadEnv() {
 loadEnv();
 
 let pool;
+let sqliteDb;
 
 // Check if PostgreSQL is available and configured
 if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres')) {
@@ -37,7 +38,6 @@ if (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres'))
 
 // If PG pool is not initialized, use embedded SQLite
 if (!pool) {
-  let sqliteDb;
   try {
     const { DatabaseSync } = require('node:sqlite');
     // Store in memory or local file
@@ -130,6 +130,34 @@ if (!pool) {
     },
     end: async () => {
       // no-op for embedded db
+    },
+    transaction: async (callback) => {
+      sqliteDb.exec('BEGIN');
+      try {
+        const result = await callback(pool);
+        sqliteDb.exec('COMMIT');
+        return result;
+      } catch (err) {
+        sqliteDb.exec('ROLLBACK');
+        throw err;
+      }
+    }
+  };
+}
+
+if (pool && !pool.transaction) {
+  pool.transaction = async (callback) => {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await callback(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
   };
 }
