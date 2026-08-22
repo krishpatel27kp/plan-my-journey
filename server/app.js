@@ -1,5 +1,6 @@
 const path = require('path');
 const { authMiddleware } = require('./middleware/auth');
+const db = require('./db');
 
 let app;
 
@@ -324,6 +325,27 @@ try {
               });
 
               return res.status(201).json(stop.toJSON());
+            }
+
+            // PUT /api/trips/:tripId/stops/reorder
+            if (pathname.endsWith('/stops/reorder') && req.method === 'PUT') {
+              const tripId = pathname.split('/')[3];
+              const stopIds = req.body?.stopIds;
+              if (!UUID_REGEX.test(tripId)) return sendNotFoundError(res, 'Trip not found');
+              if (!Array.isArray(stopIds) || stopIds.length !== new Set(stopIds).size) {
+                return sendValidationError(res, 'stopIds must be a list of unique stop IDs');
+              }
+              const trip = await Trip.findByIdAndUserId(tripId, req.user.userId);
+              if (!trip) return sendNotFoundError(res, 'Trip not found');
+              const owned = await db.query('SELECT id FROM trip_stops WHERE trip_id = $1', [tripId]);
+              const ownedIds = new Set(owned.rows.map(row => row.id));
+              if (stopIds.length !== ownedIds.size || stopIds.some(id => !ownedIds.has(id))) {
+                return sendValidationError(res, 'stopIds must contain every stop in the trip exactly once');
+              }
+              for (let index = 0; index < stopIds.length; index++) {
+                await db.query('UPDATE trip_stops SET stop_order = $1 WHERE id = $2 AND trip_id = $3', [index + 1, stopIds[index], tripId]);
+              }
+              return res.status(200).json({ stopIds });
             }
 
             // POST /api/trips (Create Trip)
