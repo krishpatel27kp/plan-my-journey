@@ -5,7 +5,7 @@
 
 import { getToken, clearSession } from './auth.js';
 
-const API_BASE_URL = window.__API_BASE_URL__ || (['5173','5174','5175'].includes(window.location.port) ? 'http://localhost:5000/api' : '/api');
+const API_BASE_URL = window.__API_BASE_URL__ || (window.location.hostname === 'localhost' ? 'http://localhost:5000/api' : '/api');
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
