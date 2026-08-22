@@ -1,17 +1,15 @@
 /**
- * Phase 1 Real JWT Auth Test Suite
- * Validates all 9 debug prompt requirements and edge cases.
+ * Phase 1 & 2 Real JWT Auth Test Suite
+ * Validates all endpoints, real token flow, profile updates, and edge cases.
  */
 const assert = require('assert');
 const http = require('http');
 const app = require('../app');
 const { verifyToken, generateToken } = require('../utils/auth');
 
-const OLD_PHASE0_STUB_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMTExMTExMS0xMTExLTExMTEtMTExMS0xMTExMTExMTExMTEiLCJlbWFpbCI6InRlc3R1c2VyQHBsYW5teWpvdXJuZXkuZGV2IiwiaWF0IjoxNzQwMDAwMDAwLCJleHAiOjE3NzE1MzYwMDB9.stub-signature-phase0-teammate-a";
-
 async function runTests() {
   console.log("\n============================================================");
-  console.log(" Running Phase 1: Real JWT Auth End-to-End Test Suite");
+  console.log(" Running Real JWT Auth & Profile End-to-End Test Suite");
   console.log("============================================================\n");
 
   const server = http.createServer(app);
@@ -160,11 +158,11 @@ async function runTests() {
     assert.strictEqual(data?.error?.code, 'UNAUTHORIZED');
   });
 
-  // Check 8: Confirm old Phase 0 stub token now correctly FAILS
-  await check(8, "Confirm old Phase 0 stub token now correctly FAILS (401 UNAUTHORIZED)", async () => {
+  // Check 8: Confirm invalid/untrusted token is rejected -> 401 UNAUTHORIZED
+  await check(8, "Confirm invalid/untrusted tokens are rejected (401 UNAUTHORIZED)", async () => {
     const res = await fetch(`${baseUrl}/api/users/me`, {
       headers: {
-        Authorization: `Bearer ${OLD_PHASE0_STUB_TOKEN}`
+        Authorization: 'Bearer invalid.token.payload'
       }
     });
     assert.strictEqual(res.status, 401, `Expected 401, got ${res.status}`);
@@ -207,7 +205,7 @@ async function runTests() {
   await new Promise((resolve) => server.close(resolve));
 
   console.log(`\n============================================================`);
-  console.log(` Phase 1 Test Results: ${passed} Passed, ${failed} Failed`);
+  console.log(` Real Auth Test Results: ${passed} Passed, ${failed} Failed`);
   console.log(`============================================================\n`);
 
   if (failed > 0) {

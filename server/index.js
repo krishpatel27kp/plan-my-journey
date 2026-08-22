@@ -1,13 +1,32 @@
 const app = require('./app');
 const path = require('path');
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
-const { STUB_TEST_TOKEN } = require('./middleware/auth');
+const fs = require('fs');
+
+// Safe dotenv loading
+function loadEnv() {
+  const envPath = path.join(__dirname, '../.env');
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, 'utf8');
+    content.split('\n').forEach((line) => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+        const idx = trimmed.indexOf('=');
+        const key = trimmed.slice(0, idx).trim();
+        const val = trimmed.slice(idx + 1).trim();
+        if (!process.env[key]) {
+          process.env[key] = val;
+        }
+      }
+    });
+  }
+}
+loadEnv();
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
   console.log(`============================================================`);
   console.log(`Plan My Journey API Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
-  console.log(`STUB TEST TOKEN: ${STUB_TEST_TOKEN}`);
+  console.log(`Auth System: Real JWT Authentication Active`);
   console.log(`============================================================`);
 });
