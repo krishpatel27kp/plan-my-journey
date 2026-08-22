@@ -1,6 +1,6 @@
 /**
  * City & Activity Discovery Search Component (Editorial Travel System)
- * Features Light-First Hero Search, Bento Spotlight Card, and Clean Filtering.
+ * Features Light-First Hero Search, Bento Spotlight Card, Real Daily Rupee (₹) Estimates, and Clean Filtering.
  */
 import { renderCityActivitiesModal } from './CityActivitiesModal.js';
 
@@ -19,6 +19,14 @@ const REGIONS = [
   { id: 'oceania', label: '🦘 Oceania' }
 ];
 
+const COST_MAP = {
+  1: { amount: '₹1,500', label: 'Budget-Friendly' },
+  2: { amount: '₹3,500', label: 'Moderate' },
+  3: { amount: '₹6,500', label: 'Premium' },
+  4: { amount: '₹12,000', label: 'Upscale' },
+  5: { amount: '₹25,000+', label: 'Luxury' }
+};
+
 export function renderCitySearch() {
   const container = document.createElement('div');
   container.className = 'main-container animate-fade-in';
@@ -33,7 +41,7 @@ export function renderCitySearch() {
   container.innerHTML = `
     <!-- Hero Search Section -->
     <div style="text-align: center; margin-bottom: 3rem; display: flex; flex-direction: column; align-items: center; padding-top: 1.5rem;">
-      <div class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); border: 1px solid rgba(37, 99, 235, 0.2); border-radius: var(--radius-full); padding: 0.35rem 1rem; font-size: 0.85rem; font-weight: 700; margin-bottom: 1rem; letter-spacing: 0.04em;">
+      <div class="badge" style="background: var(--color-primary-subtle); color: var(--color-primary); border: 1px solid rgba(0, 109, 100, 0.2); border-radius: var(--radius-full); padding: 0.35rem 1rem; font-size: 0.85rem; font-weight: 700; margin-bottom: 1rem; letter-spacing: 0.04em;">
         ✈️ DISCOVER & EXPLORE
       </div>
       
@@ -41,7 +49,7 @@ export function renderCitySearch() {
         Where do you want to go?
       </h1>
       <p style="color: #64748b; font-size: 1.15rem; max-width: 620px; line-height: 1.6; margin-bottom: 2rem;">
-        Search curated destinations, compare cost indices, and explore handpicked activities for your next journey.
+        Search curated destinations, compare real daily costs in Rupees (₹), and explore handpicked activities for your next journey.
       </p>
 
       <!-- 60px Clean Light Hero Search Input -->
@@ -55,7 +63,7 @@ export function renderCitySearch() {
           placeholder="Search destinations (e.g. Goa, Paris, Tokyo, Mumbai, Rome)..." 
           style="width: 100%; height: 60px; padding: 0 7.5rem 0 3.5rem; font-size: 1.05rem; background: #ffffff; border: 1px solid var(--color-border); border-radius: var(--radius-full); color: #0f172a; outline: none; box-shadow: 0 8px 30px rgba(15,23,42,0.06); transition: all var(--transition-fast);"
         />
-        <button id="btn-hero-search" class="btn btn-primary" style="position: absolute; right: 6px; top: 6px; bottom: 6px; border-radius: var(--radius-full); padding: 0 1.5rem; font-size: 0.95rem; font-weight: 700;">
+        <button id="btn-hero-search" class="btn btn-primary" style="position: absolute; right: 6px; top: 6px; bottom: 6px; border-radius: var(--radius-full); padding: 0 1.5rem; font-size: 0.95rem; font-weight: 700; background: #006d64;">
           Search
         </button>
       </div>
@@ -63,7 +71,7 @@ export function renderCitySearch() {
       <!-- Regional Filter Chips -->
       <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; max-width: 960px;" id="region-pills">
         ${REGIONS.map(reg => `
-          <button class="btn btn-sm ${reg.id === '' ? 'btn-primary' : 'btn-secondary'}" data-region="${reg.id}" style="border-radius: var(--radius-full); padding: 0.45rem 1rem; font-size: 0.85rem; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+          <button class="btn btn-sm ${reg.id === '' ? 'btn-primary' : 'btn-secondary'}" data-region="${reg.id}" style="border-radius: var(--radius-full); padding: 0.45rem 1rem; font-size: 0.85rem; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.04); ${reg.id === '' ? 'background: #006d64; border-color: #006d64;' : ''}">
             ${reg.label}
           </button>
         `).join('')}
@@ -80,7 +88,7 @@ export function renderCitySearch() {
     <!-- Destinations Grid / Bento Canvas -->
     <div id="cities-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1.75rem;">
       <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem;">
-        <div class="spinner" style="width: 36px; height: 36px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
+        <div class="spinner" style="width: 36px; height: 36px; border: 3px solid rgba(0, 109, 100, 0.2); border-top-color: #006d64; border-radius: 50%; margin: 0 auto;"></div>
         <p style="color: #64748b; margin-top: 1rem;">Loading curated destinations...</p>
       </div>
     </div>
@@ -107,11 +115,13 @@ export function renderCitySearch() {
   regionPills.forEach(pill => {
     pill.addEventListener('click', () => {
       regionPills.forEach(p => {
-        p.classList.remove('btn-primary');
-        p.classList.add('btn-secondary');
+        p.style.background = '#ffffff';
+        p.style.borderColor = '#e2e8f0';
+        p.style.color = '#0f172a';
       });
-      pill.classList.remove('btn-secondary');
-      pill.classList.add('btn-primary');
+      pill.style.background = '#006d64';
+      pill.style.borderColor = '#006d64';
+      pill.style.color = '#ffffff';
       selectedRegion = pill.getAttribute('data-region') || '';
       loadCities();
     });
@@ -120,7 +130,7 @@ export function renderCitySearch() {
   async function loadCities() {
     grid.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem;">
-        <div class="spinner" style="width: 36px; height: 36px; border: 3px solid rgba(37, 99, 235, 0.2); border-top-color: var(--color-primary); border-radius: 50%; margin: 0 auto;"></div>
+        <div class="spinner" style="width: 36px; height: 36px; border: 3px solid rgba(0, 109, 100, 0.2); border-top-color: #006d64; border-radius: 50%; margin: 0 auto;"></div>
         <p style="color: #64748b; margin-top: 1rem;">Fetching destinations...</p>
       </div>
     `;
@@ -157,11 +167,13 @@ export function renderCitySearch() {
           searchTerm = '';
           selectedRegion = '';
           regionPills.forEach(p => {
-            p.classList.remove('btn-primary');
-            p.classList.add('btn-secondary');
+            p.style.background = '#ffffff';
+            p.style.borderColor = '#e2e8f0';
+            p.style.color = '#0f172a';
           });
-          regionPills[0]?.classList.add('btn-primary');
-          regionPills[0]?.classList.remove('btn-secondary');
+          regionPills[0].style.background = '#006d64';
+          regionPills[0].style.borderColor = '#006d64';
+          regionPills[0].style.color = '#ffffff';
           loadCities();
         });
         return;
@@ -175,7 +187,8 @@ export function renderCitySearch() {
 
       if (shouldRenderSpotlight) {
         const featured = cities[0];
-        const costSymbols = featured.costIndex ? '₹'.repeat(Math.min(featured.costIndex, 4)) : '₹₹';
+        const costInfo = COST_MAP[featured.costIndex] || { amount: '₹25,000+', label: 'Luxury' };
+        
         const spotlightCard = document.createElement('article');
         spotlightCard.className = 'card animate-fade-in';
         spotlightCard.style.gridColumn = '1 / -1';
@@ -187,6 +200,7 @@ export function renderCitySearch() {
         spotlightCard.style.boxShadow = '0 12px 35px rgba(15, 23, 42, 0.08)';
         spotlightCard.style.cursor = 'pointer';
         spotlightCard.style.background = '#ffffff';
+        spotlightCard.style.borderRadius = '24px';
 
         spotlightCard.innerHTML = `
           <div style="position: relative; flex: 1.3; min-height: 280px; overflow: hidden;">
@@ -194,14 +208,14 @@ export function renderCitySearch() {
             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to right, rgba(15,23,42,0.1), rgba(15,23,42,0.6));"></div>
             
             <div style="position: absolute; top: 1rem; left: 1rem; display: flex; gap: 0.5rem;">
-              <span class="badge" style="background: var(--color-primary); color: #fff; font-weight: 700; padding: 0.35rem 0.8rem; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
+              <span class="badge" style="background: #006d64; color: #fff; font-weight: 700; padding: 0.35rem 0.8rem; box-shadow: 0 4px 12px rgba(0,109,100,0.3);">
                 ⭐ SPOTLIGHT DESTINATION
               </span>
             </div>
 
             <div style="position: absolute; bottom: 1rem; left: 1rem;">
-              <span class="badge" style="background: rgba(255,255,255,0.92); backdrop-filter: blur(8px); color: #059669; font-weight: 700; font-size: 0.85rem; border: 1px solid rgba(0,0,0,0.06);">
-                Cost Index: ${costSymbols}
+              <span class="badge" style="background: rgba(255,255,255,0.94); backdrop-filter: blur(8px); color: #006d64; font-weight: 800; font-size: 0.85rem; border: 1px solid rgba(0,0,0,0.06);">
+                Est. Cost: ${costInfo.amount} / day
               </span>
             </div>
           </div>
@@ -210,7 +224,7 @@ export function renderCitySearch() {
             <div>
               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                 <div>
-                  <span style="font-size: 0.85rem; color: var(--color-primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+                  <span style="font-size: 0.85rem; color: #006d64; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
                     📍 ${escapeHtml(featured.country)}
                   </span>
                   <h2 style="font-family: var(--font-heading); font-size: 2.4rem; font-weight: 900; color: #0f172a; margin-top: 0.2rem;">
@@ -228,17 +242,19 @@ export function renderCitySearch() {
 
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 1rem 0; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); margin-bottom: 1.5rem;">
                 <div>
-                  <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Cost Level</span>
-                  <p style="font-weight: 700; color: #059669; font-size: 1.05rem; margin-top: 0.2rem;">${costSymbols} (${featured.costIndex <= 2 ? 'Budget Friendly' : (featured.costIndex === 3 ? 'Moderate' : 'Luxury')})</p>
+                  <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Daily Cost Level</span>
+                  <p style="font-weight: 800; color: #006d64; font-size: 1.05rem; margin-top: 0.2rem;">
+                    ${costInfo.amount}/day (${costInfo.label})
+                  </p>
                 </div>
                 <div>
-                  <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Recommended Season</span>
-                  <p style="font-weight: 700; color: #0f172a; font-size: 1.05rem; margin-top: 0.2rem;">All Year Round</p>
+                  <span style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Recommended Season</span>
+                  <p style="font-weight: 800; color: #0f172a; font-size: 1.05rem; margin-top: 0.2rem;">All Year Round</p>
                 </div>
               </div>
             </div>
 
-            <button class="btn btn-primary btn-lg" style="width: 100%; justify-content: center; gap: 0.6rem;" id="btn-spotlight-view">
+            <button class="btn btn-primary btn-lg" style="width: 100%; justify-content: center; gap: 0.6rem; background: #006d64; border-radius: 9999px;" id="btn-spotlight-view">
               <span>Explore ${escapeHtml(featured.name)} Activities</span>
               <span>→</span>
             </button>
@@ -261,7 +277,8 @@ export function renderCitySearch() {
       // Render standard cards
       for (let i = startIndex; i < cities.length; i++) {
         const city = cities[i];
-        const costSymbols = city.costIndex ? '₹'.repeat(Math.min(city.costIndex, 4)) : '₹₹';
+        const costInfo = COST_MAP[city.costIndex] || { amount: '₹3,500', label: 'Moderate' };
+        
         const card = document.createElement('article');
         card.className = 'card animate-fade-in';
         card.style.padding = '0';
@@ -270,6 +287,7 @@ export function renderCitySearch() {
         card.style.display = 'flex';
         card.style.flexDirection = 'column';
         card.style.background = '#ffffff';
+        card.style.borderRadius = '20px';
         card.style.transition = 'transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease';
 
         card.innerHTML = `
@@ -278,10 +296,10 @@ export function renderCitySearch() {
             <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to top, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.1) 60%, rgba(0,0,0,0.2) 100%);"></div>
             
             <div style="position: absolute; top: 0.75rem; left: 0.75rem; right: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
-              <span class="badge" style="background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); color: #059669; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(0,0,0,0.06);">
-                ${costSymbols}
+              <span class="badge" style="background: rgba(255,255,255,0.94); backdrop-filter: blur(6px); color: #006d64; font-weight: 800; font-size: 0.78rem; border: 1px solid rgba(0,0,0,0.06);">
+                From ${costInfo.amount}/day
               </span>
-              <span class="badge" style="background: rgba(255,255,255,0.92); backdrop-filter: blur(6px); color: #d97706; font-weight: 700; font-size: 0.8rem; border: 1px solid rgba(0,0,0,0.06);">
+              <span class="badge" style="background: rgba(255,255,255,0.94); backdrop-filter: blur(6px); color: #d97706; font-weight: 800; font-size: 0.78rem; border: 1px solid rgba(0,0,0,0.06);">
                 🔥 ${city.popularity || 85}%
               </span>
             </div>
@@ -299,46 +317,52 @@ export function renderCitySearch() {
               Explore iconic sights, authentic dining, and guided activities in ${escapeHtml(city.name)}.
             </p>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.85rem; border-top: 1px solid var(--color-border);">
-              <span style="font-size: 0.82rem; color: var(--color-primary); font-weight: 700;">
-                View Activities →
-              </span>
-              <button class="btn btn-secondary btn-sm btn-card-explore" style="font-size: 0.8rem; padding: 0.35rem 0.8rem;">
-                Explore
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-border);">
+              <div>
+                <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Est. Daily Spend</span>
+                <p style="font-size: 0.95rem; font-weight: 800; color: #006d64;">${costInfo.amount} / day</p>
+              </div>
+              <button class="btn btn-secondary btn-sm btn-explore-city" data-id="${escapeHtml(city.id)}" style="background: #e6f4f2; border-color: #006d64; color: #006d64; font-weight: 700; border-radius: 9999px;">
+                View Activities ➔
               </button>
             </div>
           </div>
         `;
 
-        const img = card.querySelector('.card-img');
-        card.addEventListener('mouseenter', () => {
-          if (img) img.style.transform = 'scale(1.06)';
-          card.style.boxShadow = '0 12px 30px rgba(15, 23, 42, 0.12)';
-          card.style.transform = 'translateY(-3px)';
-        });
-        card.addEventListener('mouseleave', () => {
-          if (img) img.style.transform = 'scale(1)';
-          card.style.boxShadow = 'var(--shadow-sm)';
-          card.style.transform = 'translateY(0)';
+        card.querySelector('.btn-explore-city')?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openActivitiesModal(city);
         });
 
         card.addEventListener('click', () => openActivitiesModal(city));
+
+        const cardImg = card.querySelector('.card-img');
+        card.addEventListener('mouseenter', () => {
+          card.style.transform = 'translateY(-4px)';
+          card.style.boxShadow = '0 12px 30px rgba(15,23,42,0.1)';
+          if (cardImg) cardImg.style.transform = 'scale(1.06)';
+        });
+        card.addEventListener('mouseleave', () => {
+          card.style.transform = 'translateY(0)';
+          card.style.boxShadow = 'var(--shadow-sm)';
+          if (cardImg) cardImg.style.transform = 'scale(1)';
+        });
+
         grid.appendChild(card);
       }
 
     } catch (err) {
       grid.innerHTML = `
-        <div style="grid-column: 1 / -1;" class="card">
-          <p style="color: #ef4444; text-align: center; font-weight: 600;">Error: ${escapeHtml(err.message)}</p>
+        <div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: #ef4444;">
+          <h3>Failed to load destinations</h3>
+          <p style="margin-top: 0.5rem; color: #64748b;">${escapeHtml(err.message)}</p>
         </div>
       `;
     }
   }
 
   function openActivitiesModal(city) {
-    if (activeModal) {
-      activeModal.remove();
-    }
+    if (activeModal) activeModal.remove();
     activeModal = renderCityActivitiesModal({
       city,
       onClose: () => {
