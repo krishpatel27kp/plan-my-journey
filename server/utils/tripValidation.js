@@ -143,66 +143,41 @@ function validateUpdateTrip(body = {}) {
  * Body: { cityId, startDate, endDate, stopOrder }
  */
 function validateCreateStop(body = {}) {
-  const { cityId, city_id, startDate, endDate, start_date, end_date, stopOrder, stop_order } = body;
+  const { cityId, city_id, cityName, city_name } = body;
   const cId = cityId || city_id;
-  const start = startDate || start_date;
-  const end = endDate || end_date;
-  const order = stopOrder !== undefined ? stopOrder : stop_order;
+  const cName = cityName || city_name;
 
-  if (!cId || typeof cId !== 'string' || cId.trim().length === 0) {
+  // At least cityId OR cityName must be provided
+  if ((!cId || typeof cId !== 'string' || cId.trim().length === 0) &&
+      (!cName || typeof cName !== 'string' || cName.trim().length === 0)) {
     return {
       isValid: false,
-      message: 'cityId is required'
+      message: 'cityId or cityName is required'
     };
   }
 
-  if (!start) {
-    return {
-      isValid: false,
-      message: 'startDate is required'
-    };
-  }
+  // startDate and endDate are optional for stops
+  const start = body.startDate || body.start_date;
+  const end = body.endDate || body.end_date;
 
-  if (!isValidDate(start)) {
+  if (start && !isValidDate(start)) {
     return {
       isValid: false,
       message: 'startDate must be a valid date in YYYY-MM-DD format'
     };
   }
 
-  if (!end) {
-    return {
-      isValid: false,
-      message: 'endDate is required'
-    };
-  }
-
-  if (!isValidDate(end)) {
+  if (end && !isValidDate(end)) {
     return {
       isValid: false,
       message: 'endDate must be a valid date in YYYY-MM-DD format'
     };
   }
 
-  if (parseDate(start) > parseDate(end)) {
+  if (start && end && new Date(start) > new Date(end)) {
     return {
       isValid: false,
-      message: 'startDate cannot be after endDate'
-    };
-  }
-
-  if (order === undefined || order === null || order === '') {
-    return {
-      isValid: false,
-      message: 'stopOrder is required'
-    };
-  }
-
-  const numOrder = Number(order);
-  if (!Number.isInteger(numOrder) || typeof order === 'boolean' || numOrder < 1) {
-    return {
-      isValid: false,
-      message: 'stopOrder must be a positive integer greater than or equal to 1'
+      message: 'endDate must be after or equal to startDate'
     };
   }
 

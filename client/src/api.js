@@ -5,7 +5,7 @@
 
 import { getToken, clearSession } from './auth.js';
 
-const API_BASE_URL = window.__API_BASE_URL__ || (window.location.port === '5173' ? 'http://localhost:5000/api' : '/api');
+const API_BASE_URL = window.__API_BASE_URL__ || (['5173','5174','5175'].includes(window.location.port) ? 'http://localhost:5000/api' : '/api');
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE_URL}${endpoint}`;
@@ -89,5 +89,12 @@ export const api = {
   // Sharing & Copying endpoints (Pillar C)
   shareTrip: (tripId) => request(`/trips/${tripId}/share`, { method: 'POST' }),
   getPublicTrip: (shareToken) => request(`/public/trips/${shareToken}`, { skipAuth: true }),
-  copyTrip: (shareToken) => request(`/trips/${shareToken}/copy`, { method: 'POST' })
+  copyTrip: (shareToken) => request(`/trips/${shareToken}/copy`, { method: 'POST' }),
+
+  // Budget & Expenses (Pillar B / C)
+  getTripBudget: (tripId) => request(`/trips/${tripId}/budget`),
+  addExpense: (tripId, body) => request(`/trips/${tripId}/expenses`, { method: 'POST', body: JSON.stringify(body) }),
+  deleteItineraryActivity: (id) => request(`/itinerary-activities/${id}`, { method: 'DELETE' }),
+  deleteStop: (stopId) => request(`/stops/${stopId}`, { method: 'DELETE' })
 };
+

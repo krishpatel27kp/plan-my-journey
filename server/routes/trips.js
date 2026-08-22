@@ -243,25 +243,38 @@ router.post('/:tripId/stops', async (req, res, next) => {
     } = req.body;
 
     const cId = cityId || city_id;
-    const start = startDate || start_date;
-    const end = endDate || end_date;
-    const order = stopOrder !== undefined ? stopOrder : stop_order;
+    const start = startDate || start_date || null;
+    const end = endDate || end_date || null;
+    const order = stopOrder !== undefined ? stopOrder : (stop_order !== undefined ? stop_order : null);
 
-    // 3. Resolve city name from database
+    // 3. Resolve city name: prefer provided cityName, then look up from DB only if cId is a valid UUID
     let cityName = req.body.cityName || req.body.city_name || '';
-    if (cId) {
+    if (!cityName && cId && UUID_REGEX.test(cId)) {
       const city = await City.findById(cId);
       if (city) {
         cityName = city.name;
       }
     }
 
+    // Determine stopOrder — auto-assign next if not provided
+    let resolvedOrder = order !== null && order !== undefined ? parseInt(order, 10) : null;
+    if (!resolvedOrder || isNaN(resolvedOrder)) {
+      const maxOrderRes = await db.query(
+        'SELECT COALESCE(MAX(stop_order), 0) + 1 AS next_order FROM trip_stops WHERE trip_id = $1',
+        [tripId]
+      );
+      resolvedOrder = maxOrderRes.rows[0]?.next_order || 1;
+    }
+
+    // Use cId only if it's a real UUID, otherwise null
+    const resolvedCityId = (cId && UUID_REGEX.test(cId)) ? cId : null;
+
     // 4. Create TripStop
     const stop = await TripStop.create({
       tripId,
-      cityId: cId,
+      cityId: resolvedCityId,
       cityName: cityName || 'Destination',
-      stopOrder: parseInt(order, 10),
+      stopOrder: resolvedOrder,
       startDate: start,
       endDate: end,
       notes
@@ -272,6 +285,7 @@ router.post('/:tripId/stops', async (req, res, next) => {
     next(err);
   }
 });
+
 
 router.delete('/stops/:stopId', async (req, res, next) => {
   try {
@@ -385,38 +399,161 @@ router.delete('/itinerary-activities/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// Helper: Ensure expenses table exists
+let expensesTableInitialized = false;
+async function ensureExpensesTable() {
+  if (expensesTableInitialized) return;
+  try {
+    await db.query(`
+      CREATE TABLE IF NOT EXISTS expenses (
+        id VARCHAR(36) PRIMARY KEY,
+        trip_id VARCHAR(36) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+        category VARCHAR(100) NOT NULL DEFAULT 'Other',
+        expense_date VARCHAR(50),
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    expensesTableInitialized = true;
+  } catch (e) {
+    // Ignore if table already exists or in memory mode
+  }
+}
+
+// POST /api/trips/:tripId/expenses
+router.post('/:tripId/expenses', async (req, res, next) => {
+  try {
+    await ensureExpensesTable();
+    const { tripId } = req.params;
+    const { title, amount, category, date } = req.body || {};
+
+    const trip = await Trip.findByIdAndUserId(tripId, req.user.userId);
+    if (!trip) return sendNotFoundError(res, 'Trip not found');
+
+    if (!title || amount === undefined || isNaN(Number(amount))) {
+      return sendValidationError(res, 'Title and numeric amount are required');
+    }
+
+    const expenseId = crypto.randomUUID();
+    const expenseDate = date || new Date().toISOString().slice(0, 10);
+    const expCategory = category || 'Other';
+
+    await db.query(
+      `INSERT INTO expenses (id, trip_id, title, amount, category, expense_date)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [expenseId, tripId, title, Number(amount), expCategory, expenseDate]
+    );
+
+    return res.status(201).json({
+      id: expenseId,
+      tripId,
+      title,
+      amount: Number(amount),
+      category: expCategory,
+      date: expenseDate
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // GET /api/trips/:tripId/budget
 router.get('/:tripId/budget', async (req, res, next) => {
   try {
+    await ensureExpensesTable();
     const trip = await Trip.findByIdAndUserId(req.params.tripId, req.user.userId);
     if (!trip) return sendNotFoundError(res, 'Trip not found');
+
+    // Query activities & expenses with destination stop info
     const costs = await db.query(
-      `SELECT ia.activity_date AS date, ia.cost, a.category, 'activity' AS source
-       FROM itinerary_activities ia JOIN trip_stops s ON s.id = ia.trip_stop_id
-       LEFT JOIN activities a ON a.id = ia.activity_id WHERE s.trip_id = $1
-      UNION ALL SELECT expense_date AS date, amount AS cost, category, 'expense' AS source
-      FROM expenses WHERE trip_id = $2`, [req.params.tripId, req.params.tripId]
+      `SELECT ia.activity_date AS date, ia.cost, ia.title, a.category, 'activity' AS source, s.id AS stop_id, s.city_name
+       FROM itinerary_activities ia 
+       JOIN trip_stops s ON s.id = ia.trip_stop_id
+       LEFT JOIN activities a ON a.id = ia.activity_id 
+       WHERE s.trip_id = $1
+       UNION ALL 
+       SELECT expense_date AS date, amount AS cost, title, category, 'expense' AS source, NULL AS stop_id, NULL AS city_name
+       FROM expenses WHERE trip_id = $2`, 
+      [req.params.tripId, req.params.tripId]
     );
-    const byCategory = { transport: 0, accommodation: 0, activities: 0, food: 0, other: 0 };
+
+    const byCategory = { transport: 0, accommodation: 0, lodging: 0, activities: 0, food: 0, other: 0 };
     const days = {};
+    const byDestinationMap = {};
+    let mostExpensiveItem = null;
+    let maxItemCost = 0;
+
     for (const row of costs.rows) {
       const amount = Number(row.cost) || 0;
       let bucket = String(row.category || '').toLowerCase();
-      if (bucket.includes('transport') || bucket.includes('travel')) bucket = 'transport';
-      else if (bucket.includes('accommod') || bucket.includes('hotel') || bucket.includes('lodg')) bucket = 'accommodation';
-      else if (bucket.includes('food') || bucket.includes('dining') || bucket.includes('meal')) bucket = 'food';
-      else if (row.source === 'activity' || bucket.includes('activ') || bucket.includes('sight') || bucket.includes('tour')) bucket = 'activities';
+      if (bucket.includes('transport') || bucket.includes('travel') || bucket.includes('flight') || bucket.includes('drive')) bucket = 'transport';
+      else if (bucket.includes('accommod') || bucket.includes('hotel') || bucket.includes('lodg') || bucket.includes('resort')) bucket = 'lodging';
+      else if (bucket.includes('food') || bucket.includes('dining') || bucket.includes('meal') || bucket.includes('restaurant')) bucket = 'food';
+      else if (row.source === 'activity' || bucket.includes('activ') || bucket.includes('sight') || bucket.includes('tour') || bucket.includes('adventure')) bucket = 'activities';
       else bucket = 'other';
+
       byCategory[bucket] += amount;
-      if (row.date) days[row.date] = (days[row.date] || 0) + amount;
+      if (bucket === 'lodging') byCategory.accommodation += amount;
+
+      if (row.date) {
+        days[row.date] = (days[row.date] || 0) + amount;
+      }
+
+      if (row.city_name) {
+        byDestinationMap[row.city_name] = (byDestinationMap[row.city_name] || 0) + amount;
+      }
+
+      if (amount > maxItemCost) {
+        maxItemCost = amount;
+        mostExpensiveItem = {
+          title: row.title || 'Activity',
+          cost: amount,
+          date: row.date
+        };
+      }
     }
+
     const start = trip.startDate ? new Date(`${trip.startDate}T00:00:00Z`) : null;
     const end = trip.endDate ? new Date(`${trip.endDate}T00:00:00Z`) : null;
-    const tripLength = start && end ? Math.max(1, Math.floor((end - start) / 86400000) + 1) : 1;
-    const dailyLimit = Number(trip.budget || 0) / tripLength;
-    return res.status(200).json({ budget: Number(trip.budget) || 0, totalSpent: costs.rows.reduce((sum, row) => sum + (Number(row.cost) || 0), 0),
-      remaining: (Number(trip.budget) || 0) - costs.rows.reduce((sum, row) => sum + (Number(row.cost) || 0), 0), byCategory,
-      overBudgetDays: Object.keys(days).filter(date => days[date] > dailyLimit).sort() });
+    const tripLength = start && end ? Math.max(1, Math.floor((end - start) / 86400000) + 1) : 7;
+    const totalSpent = costs.rows.reduce((sum, row) => sum + (Number(row.cost) || 0), 0);
+    const targetBudget = Number(trip.budget) || 50000;
+    const remaining = targetBudget - totalSpent;
+    const percentUsed = targetBudget > 0 ? Math.min(100, Math.round((totalSpent / targetBudget) * 100)) : 0;
+    const dailyLimit = targetBudget / tripLength;
+    const dailyAverageSpend = tripLength > 0 ? Math.round(totalSpent / tripLength) : totalSpent;
+
+    const overBudgetDays = Object.keys(days).filter(date => days[date] > dailyLimit).sort();
+    let budgetAlert = null;
+    if (overBudgetDays.length > 0) {
+      const badDay = overBudgetDays[0];
+      const excess = Math.round(days[badDay] - dailyLimit);
+      budgetAlert = {
+        date: badDay,
+        excess,
+        message: `${badDay} is over your daily budget by ₹${excess.toLocaleString('en-IN')}. Consider reducing dining expenses tomorrow.`
+      };
+    }
+
+    const byDestination = Object.keys(byDestinationMap).map(city => ({
+      destination: city,
+      amount: byDestinationMap[city]
+    }));
+
+    return res.status(200).json({
+      budget: targetBudget,
+      totalSpent,
+      remaining,
+      percentUsed,
+      tripLength,
+      dailyAverageSpend,
+      byCategory,
+      byDestination,
+      mostExpensiveItem,
+      budgetAlert,
+      overBudgetDays
+    });
   } catch (err) { next(err); }
 });
 
